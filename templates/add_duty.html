@@ -172,10 +172,10 @@ function updatePersonOptions() {
             personSelect.appendChild(option);
         {% endfor %}
     } else if (personType === 'volunteer') {
-        {% for volunteer in (volunteers) %}
+        {% for volunteer in volunteers %}
             const option = document.createElement('option');
             option.value = '{{ volunteer.id }}';
-            option.textContent = '{{ volunteer.name }} ({{ volunteer.school }} - Grade {{ volunteer.grade or 'N/A' }})';
+            option.textContent = '{{ volunteer.name }} ({{ volunteer.school }} - Grade {{ volunteer.grade or "N/A" }})';
             personSelect.appendChild(option);
         {% endfor %}
     }

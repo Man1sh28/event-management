@@ -12,7 +12,7 @@ def init_db():
     conn = sqlite3.connect('events.db')
     cursor = conn.cursor()
     
-    # Events table
+    # Events table - Fixed column names
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,7 +56,7 @@ def init_db():
         )
     ''')
     
-    # Duties table - updated to support both participants and volunteers
+    # Duties table - Fixed structure to match template expectations
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS duties (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,8 +64,11 @@ def init_db():
             participant_id INTEGER,
             volunteer_id INTEGER,
             duty_type TEXT NOT NULL,
-            time_slot TEXT,
-            location TEXT,
+            duty_date DATE NOT NULL,
+            start_time TIME NOT NULL,
+            end_time TIME NOT NULL,
+            location TEXT NOT NULL,
+            description TEXT,
             notes TEXT,
             assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
@@ -408,34 +411,37 @@ def delete_volunteer(id):
 def duties():
     conn = get_db_connection()
     
-    # Get all duties with event, participant, and volunteer details
+    # Fixed query - use correct column names
     duties = conn.execute('''
-        SELECT d.*, e.name as event_name, e.date as event_date,
+        SELECT d.*, e.name as event_name, e.event_date as event_date,
                COALESCE(p.name, v.name) as person_name,
                CASE WHEN d.participant_id IS NOT NULL THEN 'Participant' ELSE 'Volunteer' END as person_type
         FROM duties d
         JOIN events e ON d.event_id = e.id
         LEFT JOIN participants p ON d.participant_id = p.id
         LEFT JOIN volunteers v ON d.volunteer_id = v.id
-        ORDER BY e.date, d.time_slot
+        ORDER BY e.event_date, d.start_time
     ''').fetchall()
     
-    events = conn.execute('SELECT id, name, date FROM events ORDER BY date').fetchall()
-    participants = conn.execute('SELECT id, name FROM participants ORDER BY name').fetchall()
-    volunteers = conn.execute('SELECT id, name, school FROM volunteers ORDER BY school, name').fetchall()
+    events = conn.execute('SELECT id, name, event_date FROM events ORDER BY event_date').fetchall()
+    participants = conn.execute('SELECT id, name, class_dept FROM participants ORDER BY name').fetchall()
+    volunteers = conn.execute('SELECT id, name, school, grade FROM volunteers ORDER BY school, name').fetchall()
     
     conn.close()
     
     return render_template('duties.html', duties=duties, events=events, 
                          participants=participants, volunteers=volunteers)
 
-@app.route('/duties/add', methods=['GET', 'POST'])
-def add_duty():
+@app.route('/duties/assign', methods=['GET', 'POST'])
+def assign_duty():
     if request.method == 'POST':
         event_id = request.form['event_id']
         duty_type = request.form['duty_type']
-        time_slot = request.form['time_slot']
+        duty_date = request.form['duty_date']
+        start_time = request.form['start_time']
+        end_time = request.form['end_time']
         location = request.form['location']
+        description = request.form['description']
         notes = request.form['notes']
         
         # Determine if assigning to participant or volunteer
@@ -449,9 +455,11 @@ def add_duty():
         
         conn = get_db_connection()
         conn.execute('''
-            INSERT INTO duties (event_id, participant_id, volunteer_id, duty_type, time_slot, location, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (event_id, participant_id, volunteer_id, duty_type, time_slot, location, notes))
+            INSERT INTO duties (event_id, participant_id, volunteer_id, duty_type, 
+                              duty_date, start_time, end_time, location, description, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (event_id, participant_id, volunteer_id, duty_type, 
+              duty_date, start_time, end_time, location, description, notes))
         conn.commit()
         conn.close()
         
@@ -459,12 +467,17 @@ def add_duty():
         return redirect(url_for('duties'))
     
     conn = get_db_connection()
-    events = conn.execute('SELECT id, name, date FROM events ORDER BY date').fetchall()
-    participants = conn.execute('SELECT id, name FROM participants ORDER BY name').fetchall()
-    volunteers = conn.execute('SELECT id, name, school FROM volunteers ORDER BY school, name').fetchall()
+    events = conn.execute('SELECT id, name, event_date, start_time, end_time, venue FROM events ORDER BY event_date').fetchall()
+    participants = conn.execute('SELECT id, name, class_dept FROM participants ORDER BY name').fetchall()
+    volunteers = conn.execute('SELECT id, name, school, grade FROM volunteers ORDER BY school, name').fetchall()
     conn.close()
     
     return render_template('add_duty.html', events=events, participants=participants, volunteers=volunteers)
+
+# Alternative route name for backward compatibility
+@app.route('/duties/add', methods=['GET', 'POST'])
+def add_duty():
+    return assign_duty()
 
 @app.route('/duties/<int:id>/edit', methods=['GET', 'POST'])
 def edit_duty(id):
@@ -474,8 +487,11 @@ def edit_duty(id):
     if request.method == 'POST':
         event_id = request.form['event_id']
         duty_type = request.form['duty_type']
-        time_slot = request.form['time_slot']
+        duty_date = request.form['duty_date']
+        start_time = request.form['start_time']
+        end_time = request.form['end_time']
         location = request.form['location']
+        description = request.form['description']
         notes = request.form['notes']
         
         # Determine if assigning to participant or volunteer
@@ -489,17 +505,19 @@ def edit_duty(id):
         
         conn.execute('''
             UPDATE duties SET event_id = ?, participant_id = ?, volunteer_id = ?, duty_type = ?,
-                           time_slot = ?, location = ?, notes = ? WHERE id = ?
-        ''', (event_id, participant_id, volunteer_id, duty_type, time_slot, location, notes, id))
+                           duty_date = ?, start_time = ?, end_time = ?, location = ?, 
+                           description = ?, notes = ? WHERE id = ?
+        ''', (event_id, participant_id, volunteer_id, duty_type, duty_date, 
+              start_time, end_time, location, description, notes, id))
         conn.commit()
         conn.close()
         
         flash('Duty updated successfully!', 'success')
         return redirect(url_for('duties'))
     
-    events = conn.execute('SELECT id, name, date FROM events ORDER BY date').fetchall()
-    participants = conn.execute('SELECT id, name FROM participants ORDER BY name').fetchall()
-    volunteers = conn.execute('SELECT id, name, school FROM volunteers ORDER BY school, name').fetchall()
+    events = conn.execute('SELECT id, name, event_date, start_time, end_time, venue FROM events ORDER BY event_date').fetchall()
+    participants = conn.execute('SELECT id, name, class_dept FROM participants ORDER BY name').fetchall()
+    volunteers = conn.execute('SELECT id, name, school, grade FROM volunteers ORDER BY school, name').fetchall()
     conn.close()
     
     return render_template('edit_duty.html', duty=duty, events=events, 
@@ -541,11 +559,15 @@ def api_volunteers():
 @app.route('/api/duties')
 def api_duties():
     conn = get_db_connection()
+    # Fixed query - handle both participants and volunteers
     duties = conn.execute('''
-        SELECT d.*, e.name as event_name, p.name as participant_name
+        SELECT d.*, e.name as event_name, 
+               COALESCE(p.name, v.name) as person_name,
+               CASE WHEN d.participant_id IS NOT NULL THEN 'Participant' ELSE 'Volunteer' END as person_type
         FROM duties d
         JOIN events e ON d.event_id = e.id
-        JOIN participants p ON d.participant_id = p.id
+        LEFT JOIN participants p ON d.participant_id = p.id
+        LEFT JOIN volunteers v ON d.volunteer_id = v.id
         ORDER BY d.assigned_at DESC
     ''').fetchall()
     conn.close()
@@ -559,8 +581,9 @@ def reports():
     stats = {
         'total_events': conn.execute('SELECT COUNT(*) as count FROM events').fetchone()['count'],
         'total_participants': conn.execute('SELECT COUNT(*) as count FROM participants').fetchone()['count'],
+        'total_volunteers': conn.execute('SELECT COUNT(*) as count FROM volunteers').fetchone()['count'],
         'total_duties': conn.execute('SELECT COUNT(*) as count FROM duties').fetchone()['count'],
-        'unique_schools': conn.execute('SELECT COUNT(DISTINCT school) as count FROM participants').fetchone()['count']
+        'unique_schools': conn.execute('SELECT COUNT(DISTINCT school) as count FROM volunteers').fetchone()['count']
     }
     
     # Get events by type for chart
@@ -593,9 +616,8 @@ def reports():
     
     # Get top participating schools
     top_schools = conn.execute('''
-        SELECT school, COUNT(*) as participants,
-               (SELECT COUNT(*) FROM events WHERE participating_schools LIKE '%' || p.school || '%') as events
-        FROM participants p
+        SELECT school, COUNT(*) as participants
+        FROM volunteers
         GROUP BY school
         ORDER BY participants DESC
         LIMIT 5
@@ -603,9 +625,9 @@ def reports():
     
     # Get duty statistics
     duty_stats = conn.execute('''
-        SELECT duty_type, COUNT(*) as count, status
+        SELECT duty_type, COUNT(*) as count
         FROM duties
-        GROUP BY duty_type, status
+        GROUP BY duty_type
     ''').fetchall()
     
     conn.close()
@@ -620,7 +642,6 @@ def reports():
                          events_timeline_labels=events_timeline_labels,
                          events_timeline_data=events_timeline_data)
 
-
 @app.route('/export')
 def export_data():
     export_type = request.args.get('type', 'events')
@@ -630,12 +651,17 @@ def export_data():
         data = conn.execute('SELECT * FROM events ORDER BY event_date DESC').fetchall()
     elif export_type == 'participants':
         data = conn.execute('SELECT * FROM participants ORDER BY name').fetchall()
+    elif export_type == 'volunteers':
+        data = conn.execute('SELECT * FROM volunteers ORDER BY school, name').fetchall()
     elif export_type == 'duties':
         data = conn.execute('''
-            SELECT d.*, e.name as event_name, p.name as participant_name
+            SELECT d.*, e.name as event_name, 
+                   COALESCE(p.name, v.name) as person_name,
+                   CASE WHEN d.participant_id IS NOT NULL THEN 'Participant' ELSE 'Volunteer' END as person_type
             FROM duties d
             JOIN events e ON d.event_id = e.id
-            JOIN participants p ON d.participant_id = p.id
+            LEFT JOIN participants p ON d.participant_id = p.id
+            LEFT JOIN volunteers v ON d.volunteer_id = v.id
             ORDER BY d.assigned_at DESC
         ''').fetchall()
     else:

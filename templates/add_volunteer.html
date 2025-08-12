@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Add Volunteer - Event Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Add Volunteer</h1>
+        <a href="{{ url_for('volunteers') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Volunteers
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Volunteer Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Full Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="school" class="form-label">School *</label>
+                            <input type="text" class="form-control" id="school" name="school" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="grade" class="form-label">Grade</label>
+                            <select class="form-select" id="grade" name="grade">
+                                <option value="">Select Grade</option>
+                                <option value="6">Grade 6</option>
+                                <option value="7">Grade 7</option>
+                                <option value="8">Grade 8</option>
+                                <option value="9">Grade 9</option>
+                                <option value="10">Grade 10</option>
+                                <option value="11">Grade 11</option>
+                                <option value="12">Grade 12</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="contact" class="form-label">Contact Number</label>
+                            <input type="tel" class="form-control" id="contact" name="contact" 
+                                   placeholder="Primary contact number">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="emergency_contact" class="form-label">Emergency Contact</label>
+                            <input type="tel" class="form-control" id="emergency_contact" name="emergency_contact" 
+                                   placeholder="Emergency contact number">
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Volunteer
+                            </button>
+                            <a href="{{ url_for('volunteers') }}" class="btn btn-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Help</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Required Fields</h6>
+                    <ul class="mb-3">
+                        <li>Full Name</li>
+                        <li>School Name</li>
+                    </ul>
+                    
+                    <h6>Optional Fields</h6>
+                    <ul class="mb-3">
+                        <li>Grade (for student volunteers)</li>
+                        <li>Contact Number</li>
+                        <li>Emergency Contact</li>
+                    </ul>
+                    
+                    <p class="text-muted">
+                        <small>Volunteers are student helpers who can be assigned duties during events.</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

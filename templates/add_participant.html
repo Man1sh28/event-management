@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Add Participant - School Event Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="fas fa-user-plus"></i> Add New Participant</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('participants') }}">Participants</a></li>
+                <li class="breadcrumb-item active">Add Participant</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Participant Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Full Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Participant Type *</label>
+                        <select class="form-select" id="type" name="type" required onchange="toggleFields()">
+                            <option value="">Select Type</option>
+                            <option value="student">Student</option>
+                            <option value="teacher">Teacher</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="school" class="form-label">School/Institution *</label>
+                        <input type="text" class="form-control" id="school" name="school" required>
+                    </div>
+                    
+                    <input type="hidden" name="class_dept" id="class_dept" value="">
+                    
+                    <div id="studentFields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="grade" class="form-label">Grade</label>
+                            <select class="form-select" id="grade" name="grade" onchange="updateClassDept()">
+                                <option value="">Select Grade</option>
+                                <option value="6">Grade 6</option>
+                                <option value="7">Grade 7</option>
+                                <option value="8">Grade 8</option>
+                                <option value="9">Grade 9</option>
+                                <option value="10">Grade 10</option>
+                                <option value="11">Grade 11</option>
+                                <option value="12">Grade 12</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="teacherFields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="designation" class="form-label">Designation</label>
+                            <input type="text" class="form-control" id="designation" name="designation" 
+                                   placeholder="e.g., Principal, Teacher, Coordinator" onchange="updateClassDept()">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="contact" class="form-label">Contact Information</label>
+                        <input type="text" class="form-control" id="contact" name="contact" 
+                               placeholder="Email and/or phone number">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="emergency_contact" class="form-label">Emergency Contact</label>
+                        <input type="text" class="form-control" id="emergency_contact" name="emergency_contact" 
+                               placeholder="Name and phone number">
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('participants') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Participant
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Participant Guidelines</h5>
+            </div>
+            <div class="card-body">
+                <h6>Required Information:</h6>
+                <ul>
+                    <li>Full name</li>
+                    <li>Participant type (Student/Teacher)</li>
+                    <li>School/Institution</li>
+                </ul>
+                
+                <h6>Additional Information:</h6>
+                <ul>
+                    <li>Contact details (email and phone)</li>
+                    <li>Emergency contact information</li>
+                    <li>Grade (for students)</li>
+                    <li>Designation (for teachers)</li>
+                </ul>
+                
+                <div class="alert alert-info">
+                    <small>
+                        <i class="fas fa-info-circle"></i> 
+                        Participants can be assigned to events and duties after creation.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleFields() {
+    const type = document.getElementById('type').value;
+    const studentFields = document.getElementById('studentFields');
+    const teacherFields = document.getElementById('teacherFields');
+    
+    if (type === 'student') {
+        studentFields.style.display = 'block';
+        teacherFields.style.display = 'none';
+        document.getElementById('grade').required = true;
+        document.getElementById('designation').required = false;
+    } else if (type === 'teacher') {
+        studentFields.style.display = 'none';
+        teacherFields.style.display = 'block';
+        document.getElementById('grade').required = false;
+        document.getElementById('designation').required = true;
+    } else {
+        studentFields.style.display = 'none';
+        teacherFields.style.display = 'none';
+    }
+    updateClassDept();
+}
+
+function updateClassDept() {
+    const type = document.getElementById('type').value;
+    let classDept = '';
+    
+    if (type === 'student') {
+        const grade = document.getElementById('grade').value;
+        if (grade) {
+            classDept = 'Grade ' + grade;
+        }
+    } else if (type === 'teacher') {
+        const designation = document.getElementById('designation').value;
+        if (designation) {
+            classDept = designation;
+        }
+    }
+    
+    document.getElementById('class_dept').value = classDept;
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateClassDept();
+});
+</script>
+{% endblock %}

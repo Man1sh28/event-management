@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Participant - School Event Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="fas fa-user-edit"></i> Edit Participant</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('participants') }}">Participants</a></li>
+                <li class="breadcrumb-item active">Edit Participant</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Participant Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Full Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ participant.name }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Participant Type *</label>
+                        <select class="form-select" id="type" name="type" required onchange="toggleFields()">
+                            <option value="student" {% if participant.type == 'student' %}selected{% endif %}>Student</option>
+                            <option value="teacher" {% if participant.type == 'teacher' %}selected{% endif %}>Teacher</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="school" class="form-label">School/Institution *</label>
+                        <input type="text" class="form-control" id="school" name="school" value="{{ participant.class_dept }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="contact" class="form-label">Contact Information</label>
+                        <input type="text" class="form-control" id="contact" name="contact" 
+                               value="{{ participant.contact or '' }}" placeholder="Email and/or phone number">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="emergency_contact" class="form-label">Emergency Contact</label>
+                        <input type="text" class="form-control" id="emergency_contact" name="emergency_contact" 
+                               value="{{ participant.emergency_contact or '' }}" placeholder="Name and phone number">
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('participants') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Participant
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Participant Guidelines</h5>
+            </div>
+            <div class="card-body">
+                <h6>Required Information:</h6>
+                <ul>
+                    <li>Full name</li>
+                    <li>Participant type (Student/Teacher)</li>
+                    <li>School/Institution</li>
+                </ul>
+                
+                <h6>Additional Information:</h6>
+                <ul>
+                    <li>Contact details (email and phone)</li>
+                    <li>Emergency contact information</li>
+                </ul>
+                
+                <div class="alert alert-info">
+                    <small>
+                        <i class="fas fa-info-circle"></i> 
+                        Changes will affect participant assignments to events and duties.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

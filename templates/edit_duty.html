@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Duty - School Event Management{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const personTypeSelect = document.getElementById('person_type');
+    const personIdSelect = document.getElementById('person_id');
+    
+    function loadPersonOptions() {
+        const personType = personTypeSelect.value;
+        
+        // Clear existing options
+        personIdSelect.innerHTML = '';
+        
+        if (personType === 'participant') {
+            fetch('/api/participants')
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(participant => {
+                        const option = document.createElement('option');
+                        option.value = participant.id;
+                        option.textContent = `${participant.name} (${participant.class_dept})`;
+                        personIdSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading participants:', error));
+        } else if (personType === 'volunteer') {
+            fetch('/api/volunteers')
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(volunteer => {
+                        const option = document.createElement('option');
+                        option.value = volunteer.id;
+                        option.textContent = `${volunteer.name} (${volunteer.school} - Grade ${volunteer.grade || 'N/A'})`;
+                        personIdSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading volunteers:', error));
+        }
+    }
+    
+    // Load options on page load based on current selection
+    loadPersonOptions();
+    
+    // Load options when person type changes
+    personTypeSelect.addEventListener('change', loadPersonOptions);
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="fas fa-tasks"></i> Edit Duty</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('duties') }}">Duties</a></li>
+                <li class="breadcrumb-item active">Edit Duty</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Duty Assignment Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="event_id" class="form-label">Event *</label>
+                        <select class="form-select" id="event_id" name="event_id" required>
+                            {% for event in events %}
+                                <option value="{{ event.id }}" {% if event.id == duty.event_id %}selected{% endif %}>
+                                    {{ event.name }} - {{ event.date }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Assign To *</label>
+                        <div class="mb-2">
+                            <select class="form-select" id="person_type" name="person_type" required>
+                                <option value="participant" {% if duty.participant_id %}selected{% endif %}>Participant (Teacher)</option>
+                                <option value="volunteer" {% if duty.volunteer_id %}selected{% endif %}>Volunteer (Student)</option>
+                            </select>
+                        </div>
+                        <select class="form-select" id="person_id" name="person_id" required>
+                            {% if duty.participant_id %}
+                                {% for participant in participants %}
+                                    <option value="{{ participant.id }}" {% if participant.id == duty.participant_id %}selected{% endif %}>
+                                        {{ participant.name }} ({{ participant.class_dept }})
+                                    </option>
+                                {% endfor %}
+                            {% elif duty.volunteer_id %}
+                                {% for volunteer in volunteers %}
+                                    <option value="{{ volunteer.id }}" {% if volunteer.id == duty.volunteer_id %}selected{% endif %}>
+                                        {{ volunteer.name }} ({{ volunteer.school }} - Grade {{ volunteer.grade or 'N/A' }})
+                                    </option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="duty_type" class="form-label">Duty Type *</label>
+                        <select class="form-select" id="duty_type" name="duty_type" required>
+                            <option value="supervision" {% if duty.duty_type == 'supervision' %}selected{% endif %}>Supervision</option>
+                            <option value="coordination" {% if duty.duty_type == 'coordination' %}selected{% endif %}>Coordination</option>
+                            <option value="judging" {% if duty.duty_type == 'judging' %}selected{% endif %}>Judging</option>
+                            <option value="logistics" {% if duty.duty_type == 'logistics' %}selected{% endif %}>Logistics</option>
+                            <option value="registration" {% if duty.duty_type == 'registration' %}selected{% endif %}>Registration</option>
+                            <option value="security" {% if duty.duty_type == 'security' %}selected{% endif %}>Security</option>
+                            <option value="other" {% if duty.duty_type == 'other' %}selected{% endif %}>Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="time_slot" class="form-label">Time Slot</label>
+                        <input type="text" class="form-control" id="time_slot" name="time_slot" 
+                               value="{{ duty.time_slot or '' }}" placeholder="e.g., 9:00 AM - 12:00 PM">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="location" name="location" 
+                               value="{{ duty.location or '' }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3">{{ duty.notes or '' }}</textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('duties') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Duty Guidelines</h5>
+            </div>
+            <div class="card-body">
+                <h6>Duty Types:</h6>
+                <ul>
+                    <li><strong>Supervision:</strong> Monitor students during events</li>
+                    <li><strong>Coordination:</strong> Manage event logistics</li>
+                    <li><strong>Judging:</strong> Evaluate competitions</li>
+                    <li><strong>Logistics:</strong> Handle setup and materials</li>
+                    <li><strong>Registration:</strong> Check-in participants</li>
+                    <li><strong>Security:</strong> Ensure safety and order</li>
+                    <li><strong>Other:</strong> Any other responsibilities</li>
+                </ul>
+                
+                <div class="alert alert-info mt-3">
+                    <small>
+                        <i class="fas fa-info-circle"></i> 
+                        Changes will be reflected immediately.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

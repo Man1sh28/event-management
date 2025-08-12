@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Assign Duty - School Event Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="fas fa-tasks"></i> Assign Duty</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('duties') }}">Duties</a></li>
+                <li class="breadcrumb-item active">Assign Duty</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Duty Assignment Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="event_id" class="form-label">Event *</label>
+                        <select class="form-select" id="event_id" name="event_id" required onchange="updateEventDetails()">
+                            <option value="">Select Event</option>
+                            {% for event in events %}
+                                <option value="{{ event.id }}" 
+                                        data-date="{{ event.event_date }}" 
+                                        data-start="{{ event.start_time }}" 
+                                        data-end="{{ event.end_time }}"
+                                        data-venue="{{ event.venue }}">
+                                    {{ event.name }} - {{ event.event_date }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Assign To *</label>
+                        <div class="mb-2">
+                            <select class="form-select" id="person_type" name="person_type" required onchange="updatePersonOptions()">
+                                <option value="">Select Type</option>
+                                <option value="participant">Participant (Teacher)</option>
+                                <option value="volunteer">Volunteer (Student)</option>
+                            </select>
+                        </div>
+                        <select class="form-select" id="person_id" name="person_id" required>
+                            <option value="">Select Person</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="duty_type" class="form-label">Duty Type *</label>
+                        <select class="form-select" id="duty_type" name="duty_type" required>
+                            <option value="">Select Type</option>
+                            <option value="supervision">Supervision</option>
+                            <option value="coordination">Coordination</option>
+                            <option value="judging">Judging</option>
+                            <option value="logistics">Logistics</option>
+                            <option value="registration">Registration</option>
+                            <option value="security">Security</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="duty_date" class="form-label">Duty Date *</label>
+                            <input type="date" class="form-control" id="duty_date" name="duty_date" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="start_time" class="form-label">Start Time *</label>
+                            <input type="time" class="form-control" id="start_time" name="start_time" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="end_time" class="form-label">End Time *</label>
+                            <input type="time" class="form-control" id="end_time" name="end_time" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Location *</label>
+                        <input type="text" class="form-control" id="location" name="location" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" 
+                                  placeholder="Describe the specific responsibilities and requirements..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2" 
+                                  placeholder="Any additional notes or instructions..."></textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('duties') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Assign Duty
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Duty Guidelines</h5>
+            </div>
+            <div class="card-body">
+                <h6>Duty Types:</h6>
+                <ul>
+                    <li><strong>Supervision:</strong> Monitor students during events</li>
+                    <li><strong>Coordination:</strong> Manage event logistics</li>
+                    <li><strong>Judging:</strong> Evaluate competitions</li>
+                    <li><strong>Logistics:</strong> Handle setup and materials</li>
+                    <li><strong>Registration:</strong> Check-in participants</li>
+                    <li><strong>Security:</strong> Ensure safety and order</li>
+                    <li><strong>Other:</strong> Any other responsibilities</li>
+                </ul>
+                
+                <h6>Quick Fill Options:</h6>
+                <button type="button" class="btn btn-sm btn-outline-secondary mb-1" onclick="fillEventDetails()">
+                    Use Event Details
+                </button>
+                
+                <div class="alert alert-info mt-3">
+                    <small>
+                        <i class="fas fa-info-circle"></i> 
+                        Participants will be notified of their duty assignments.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateEventDetails() {
+    const select = document.getElementById('event_id');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (selectedOption.value) {
+        document.getElementById('duty_date').value = selectedOption.dataset.date;
+        document.getElementById('start_time').value = selectedOption.dataset.start;
+        document.getElementById('end_time').value = selectedOption.dataset.end;
+        document.getElementById('location').value = selectedOption.dataset.venue;
+    }
+}
+
+function updatePersonOptions() {
+    const personType = document.getElementById('person_type').value;
+    const personSelect = document.getElementById('person_id');
+    
+    // Clear existing options
+    personSelect.innerHTML = '<option value="">Select Person</option>';
+    
+    if (personType === 'participant') {
+        {% for participant in participants %}
+            const option = document.createElement('option');
+            option.value = '{{ participant.id }}';
+            option.textContent = '{{ participant.name }} ({{ participant.class_dept }})';
+            personSelect.appendChild(option);
+        {% endfor %}
+    } else if (personType === 'volunteer') {
+        {% for volunteer in (volunteers) %}
+            const option = document.createElement('option');
+            option.value = '{{ volunteer.id }}';
+            option.textContent = '{{ volunteer.name }} ({{ volunteer.school }} - Grade {{ volunteer.grade or 'N/A' }})';
+            personSelect.appendChild(option);
+        {% endfor %}
+    }
+}
+
+function fillEventDetails() {
+    updateEventDetails();
+}
+</script>
+{% endblock %}

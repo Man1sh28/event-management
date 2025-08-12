@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Duties - School Event Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <h1><i class="fas fa-tasks"></i> Duties & Assignments</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{{ url_for('add_duty') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Assign Duty
+        </a>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <form method="GET" class="row g-2">
+            <div class="col-md-3">
+                <select name="event" class="form-select" onchange="this.form.submit()">
+                    <option value="all">All Events</option>
+                    {% for event in events %}
+                        <option value="{{ event.id }}" {% if selected_event == event.id|string %}selected{% endif %}>
+                            {{ event.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="duty_type" class="form-select" onchange="this.form.submit()">
+                    <option value="all">All Types</option>
+                    <option value="supervision" {% if duty_type == 'supervision' %}selected{% endif %}>Supervision</option>
+                    <option value="coordination" {% if duty_type == 'coordination' %}selected{% endif %}>Coordination</option>
+                    <option value="judging" {% if duty_type == 'judging' %}selected{% endif %}>Judging</option>
+                    <option value="logistics" {% if duty_type == 'logistics' %}selected{% endif %}>Logistics</option>
+                    <option value="other" {% if duty_type == 'other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <button type="submit" class="btn btn-outline-primary">Filter</button>
+                <a href="{{ url_for('duties') }}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Duty Assignments</h5>
+            </div>
+            <div class="card-body">
+                {% if duties %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Event</th>
+                                    <th>Person</th>
+                                    <th>Type</th>
+                                    <th>Duty Type</th>
+                                    <th>Time Slot</th>
+                                    <th>Location</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for duty in duties %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ duty.event_name }}</strong><br>
+                                            <small class="text-muted">{{ duty.event_date }}</small>
+                                        </td>
+                                        <td>
+                                            <strong>{{ duty.person_name }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ duty.person_type }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ duty.duty_type|title }}</span>
+                                        </td>
+                                        <td>
+                                            {{ duty.time_slot or '-' }}
+                                        </td>
+                                        <td>
+                                            {{ duty.location or '-' }}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ url_for('edit_duty', id=duty.id) }}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <form method="POST" 
+                                                      action="{{ url_for('delete_duty', id=duty.id) }}" 
+                                                      style="display: inline;">
+                                                    <button type="submit" 
+                                                            class="btn btn-sm btn-outline-danger"
+                                                            onclick="return confirm('Are you sure you want to delete this duty assignment?')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No duty assignments found.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

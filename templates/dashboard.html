@@ -1,0 +1,508 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - School Event Management{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --info-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        --card-hover-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .main-header {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        border-radius: 0 0 20px 20px;
+        box-shadow: var(--card-shadow);
+    }
+
+    .main-header h1 {
+        font-weight: 700;
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .main-header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+
+    .stats-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .stats-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: inherit;
+        z-index: 1;
+    }
+
+    .stats-card .card-body {
+        position: relative;
+        z-index: 2;
+        padding: 2rem;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--card-hover-shadow);
+    }
+
+    .card.text-white.bg-primary {
+        background: var(--primary-gradient) !important;
+        border: none;
+        border-radius: 15px;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+    }
+
+    .card.text-white.bg-success {
+        background: var(--success-gradient) !important;
+        border: none;
+        border-radius: 15px;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+    }
+
+    .card.text-white.bg-info {
+        background: var(--info-gradient) !important;
+        border: none;
+        border-radius: 15px;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+    }
+
+    .card.text-white.bg-warning {
+        background: var(--warning-gradient) !important;
+        border: none;
+        border-radius: 15px;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+    }
+
+    .card.text-white.bg-primary:hover,
+    .card.text-white.bg-success:hover,
+    .card.text-white.bg-info:hover,
+    .card.text-white.bg-warning:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--card-hover-shadow);
+    }
+
+    .card-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-text {
+        font-size: 1rem;
+        font-weight: 600;
+        opacity: 0.95;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .fa-2x {
+        font-size: 3rem !important;
+        opacity: 0.8;
+    }
+
+    .content-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .content-card:hover {
+        box-shadow: var(--card-hover-shadow);
+    }
+
+    .card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-bottom: 2px solid #dee2e6;
+        border-radius: 15px 15px 0 0 !important;
+        padding: 1.5rem;
+    }
+
+    .card-header h5 {
+        font-weight: 700;
+        color: #495057;
+    }
+
+    .list-group-item {
+        border: none;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        padding: 1.5rem;
+    }
+
+    .list-group-item:hover {
+        transform: translateX(5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    .list-group-item h6 {
+        font-weight: 700;
+        color: #495057;
+        font-size: 1.1rem;
+    }
+
+    .list-group-item small {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .list-group-item small i {
+        width: 15px;
+        text-align: center;
+        margin-right: 0.5rem;
+    }
+
+    .list-group-item .text-muted {
+        background: var(--primary-gradient);
+        color: white !important;
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-block;
+        margin-top: 0.5rem;
+    }
+
+    .btn {
+        border: none;
+        border-radius: 10px;
+        padding: 1rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
+
+    .btn:hover::before {
+        left: 100%;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background: var(--primary-gradient);
+        color: white;
+    }
+
+    .btn-success {
+        background: var(--success-gradient);
+        color: white;
+    }
+
+    .btn-info {
+        background: var(--info-gradient);
+        color: white;
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        color: white;
+    }
+
+    .text-muted {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.05);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .main-header h1 {
+            font-size: 2rem;
+        }
+        
+        .card-title {
+            font-size: 2rem;
+        }
+        
+        .fa-2x {
+            font-size: 2rem !important;
+        }
+    }
+</style>
+
+<div class="main-header fade-in">
+    <div class="row">
+        <div class="col-12">
+            <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+            <p class="text-muted">Overview of your school's event management</p>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-primary fade-in" style="animation-delay: 0.1s">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ total_events }}</h4>
+                        <p class="card-text">Total Events</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-calendar fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-success fade-in" style="animation-delay: 0.2s">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ total_participants }}</h4>
+                        <p class="card-text">Teachers</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-chalkboard-teacher fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-info fade-in" style="animation-delay: 0.3s">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ total_volunteers }}</h4>
+                        <p class="card-text">Student Volunteers</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-user-graduate fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-warning fade-in" style="animation-delay: 0.4s">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ total_duties }}</h4>
+                        <p class="card-text">Total Duties</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-tasks fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card content-card fade-in" style="animation-delay: 0.5s">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-calendar-check"></i> Upcoming Events
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if upcoming_events %}
+                    <div class="list-group">
+                        {% for event in upcoming_events %}
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ event.name }}</h6>
+                                    <small class="text-muted">{{ event.event_date }}</small>
+                                </div>
+                                <p class="mb-1">
+                                    <small>
+                                        <i class="fas fa-tag"></i> {{ event.type }} |
+                                        <i class="fas fa-clock"></i> {{ event.start_time }} - {{ event.end_time }} |
+                                        <i class="fas fa-map-marker-alt"></i> {{ event.venue }}
+                                    </small>
+                                </p>
+                                <small class="text-muted">
+                                    Host: {{ event.host_school }}
+                                </small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No upcoming events found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card content-card fade-in" style="animation-delay: 0.6s">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie"></i> Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('add_event') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add New Event 
+                    </a>
+                    <a href="{{ url_for('add_participant') }}" class="btn btn-success">
+                        <i class="fas fa-chalkboard-teacher"></i> Add Teacher
+                    </a>
+                    <a href="{{ url_for('add_volunteer') }}" class="btn btn-info">
+                        <i class="fas fa-user-graduate"></i> Add Volunteer
+                    </a>
+                    <a href="{{ url_for('add_duty') }}" class="btn btn-warning">
+                        <i class="fas fa-tasks"></i> Assign Duty
+                    </a>
+                    <a href="{{ url_for('reports') }}" class="btn btn-secondary">
+                        <i class="fas fa-chart-bar"></i> View Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if volunteers_by_school %}
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card content-card fade-in" style="animation-delay: 0.7s">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-school"></i> Volunteers by School
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for school_data in volunteers_by_school %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>{{ school_data.school }}</span>
+                        <span class="badge bg-primary">{{ school_data.count }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card content-card fade-in" style="animation-delay: 0.8s">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tasks"></i> Duty Assignments
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Assigned to Teachers</span>
+                    <span class="badge bg-success">{{ duties_by_participants }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Assigned to Volunteers</span>
+                    <span class="badge bg-info">{{ duties_by_volunteers }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add hover effects to cards
+        const cards = document.querySelectorAll('.card');
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                if (this.classList.contains('bg-primary') || 
+                    this.classList.contains('bg-success') || 
+                    this.classList.contains('bg-info') || 
+                    this.classList.contains('bg-warning')) {
+                    this.classList.add('pulse');
+                }
+            });
+            card.addEventListener('mouseleave', function() {
+                this.classList.remove('pulse');
+            });
+        });
+    });
+</script>
+
+{% endblock %}

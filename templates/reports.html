@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Analytics - School Event Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="fas fa-chart-bar"></i> Reports & Analytics</h1>
+        <p class="text-muted">Comprehensive insights into your school's events and activities</p>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ stats.total_events }}</h4>
+                        <p class="card-text">Total Events</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-calendar fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ stats.total_participants }}</h4>
+                        <p class="card-text">Total Participants</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ stats.total_duties }}</h4>
+                        <p class="card-text">Total Duties</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-tasks fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ stats.unique_schools }}</h4>
+                        <p class="card-text">Unique Schools</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-school fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Events by Type</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="eventsChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Participants by Type</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="participantsChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Duties by Type</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="dutiesChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Monthly Events</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tables Row -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Top Participating Schools</h5>
+            </div>
+            <div class="card-body">
+                {% if top_schools %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>School</th>
+                                    <th>Events</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for school in top_schools %}
+                                <tr>
+                                    <td>{{ school.school }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ school.events }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No school data available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Duty Assignments</h5>
+            </div>
+            <div class="card-body">
+                {% if duty_stats %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Duty Type</th>
+                                    <th>Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for duty in duty_stats %}
+                                <tr>
+                                    <td>{{ duty.duty_type }}</td>
+                                    <td>
+                                        <span class="badge bg-success">{{ duty.count }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No duty data available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Section -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Export Data</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2 d-md-flex">
+                    <a href="{{ url_for('export_data') }}?type=events" class="btn btn-outline-primary">
+                        <i class="fas fa-download"></i> Export Events
+                    </a>
+                    <a href="{{ url_for('export_data') }}?type=participants" class="btn btn-outline-success">
+                        <i class="fas fa-download"></i> Export Participants
+                    </a>
+                    <a href="{{ url_for('export_data') }}?type=duties" class="btn btn-outline-info">
+                        <i class="fas fa-download"></i> Export Duties
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Events by Type Chart
+const eventsCtx = document.getElementById('eventsChart').getContext('2d');
+const eventsChart = new Chart(eventsCtx, {
+    type: 'pie',
+    data: {
+        labels: [{% for item in events_by_type %}'{{ item.type }}'{% if not loop.last %},{% endif %}{% else %}''{% endfor %}],
+        datasets: [{
+            data: [{% for item in events_by_type %}{{ item.count }}{% if not loop.last %},{% endif %}{% else %}0{% endfor %}],
+            backgroundColor: [
+                '#FF6384',
+                '#36A2EB',
+                '#FFCE56',
+                '#4BC0C0',
+                '#9966FF',
+                '#FF9F40'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+// Participants by Type Chart
+const participantsCtx = document.getElementById('participantsChart').getContext('2d');
+const participantsChart = new Chart(participantsCtx, {
+    type: 'doughnut',
+    data: {
+        labels: [{% for item in participants_by_type %}'{{ item.type.title() }}'{% if not loop.last %},{% endif %}{% else %}''{% endfor %}],
+        datasets: [{
+            data: [{% for item in participants_by_type %}{{ item.count }}{% if not loop.last %},{% endif %}{% else %}0{% endfor %}],
+            backgroundColor: ['#36A2EB', '#FF6384']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+// Duties by Type Chart
+const dutiesCtx = document.getElementById('dutiesChart').getContext('2d');
+const dutiesChart = new Chart(dutiesCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for item in duties_by_type %}'{{ item.duty_type }}'{% if not loop.last %},{% endif %}{% else %}''{% endfor %}],
+        datasets: [{
+            label: 'Duties',
+            data: [{% for item in duties_by_type %}{{ item.count }}{% if not loop.last %},{% endif %}{% else %}0{% endfor %}],
+            backgroundColor: '#4BC0C0'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Monthly Events Chart
+const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+const monthlyChart = new Chart(monthlyCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for item in monthly_events %}'{{ item.month }}'{% if not loop.last %},{% endif %}{% else %}''{% endfor %}],
+        datasets: [{
+            label: 'Events',
+            data: [{% for item in monthly_events %}{{ item.count }}{% if not loop.last %},{% endif %}{% else %}0{% endfor %}],
+            borderColor: '#FF9F40',
+            backgroundColor: 'rgba(255, 159, 64, 0.2)',
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

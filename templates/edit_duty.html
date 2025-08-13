@@ -2,53 +2,7 @@
 
 {% block title %}Edit Duty - School Event Management{% endblock %}
 
-{% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const personTypeSelect = document.getElementById('person_type');
-    const personIdSelect = document.getElementById('person_id');
-    
-    function loadPersonOptions() {
-        const personType = personTypeSelect.value;
-        
-        // Clear existing options
-        personIdSelect.innerHTML = '';
-        
-        if (personType === 'participant') {
-            fetch('/api/participants')
-                .then(response => response.json())
-                .then(data => {
-                    data.forEach(participant => {
-                        const option = document.createElement('option');
-                        option.value = participant.id;
-                        option.textContent = `${participant.name} (${participant.class_dept})`;
-                        personIdSelect.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Error loading participants:', error));
-        } else if (personType === 'volunteer') {
-            fetch('/api/volunteers')
-                .then(response => response.json())
-                .then(data => {
-                    data.forEach(volunteer => {
-                        const option = document.createElement('option');
-                        option.value = volunteer.id;
-                        option.textContent = `${volunteer.name} (${volunteer.school} - Grade ${volunteer.grade || 'N/A'})`;
-                        personIdSelect.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Error loading volunteers:', error));
-        }
-    }
-    
-    // Load options on page load based on current selection
-    loadPersonOptions();
-    
-    // Load options when person type changes
-    personTypeSelect.addEventListener('change', loadPersonOptions);
-});
-</script>
-{% endblock %}
+
 
 {% block content %}
 <div class="row">
@@ -84,27 +38,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Assign To *</label>
-                        <div class="mb-2">
-                            <select class="form-select" id="person_type" name="person_type" required>
-                                <option value="participant" {% if duty.participant_id %}selected{% endif %}>Participant (Teacher)</option>
-                                <option value="volunteer" {% if duty.volunteer_id %}selected{% endif %}>Volunteer (Student)</option>
-                            </select>
-                        </div>
+                        <label for="person_id" class="form-label">Assign To *</label>
                         <select class="form-select" id="person_id" name="person_id" required>
-                            {% if duty.participant_id %}
-                                {% for participant in participants %}
-                                    <option value="{{ participant.id }}" {% if participant.id == duty.participant_id %}selected{% endif %}>
-                                        {{ participant.name }} ({{ participant.class_dept }})
-                                    </option>
-                                {% endfor %}
-                            {% elif duty.volunteer_id %}
-                                {% for volunteer in volunteers %}
-                                    <option value="{{ volunteer.id }}" {% if volunteer.id == duty.volunteer_id %}selected{% endif %}>
-                                        {{ volunteer.name }} ({{ volunteer.school }} - Grade {{ volunteer.grade or 'N/A' }})
-                                    </option>
-                                {% endfor %}
-                            {% endif %}
+                            {% for participant in participants %}
+                                <option value="{{ participant.id }}" {% if participant.id == duty.participant_id %}selected{% endif %}>
+                                    {{ participant.name }} ({{ participant.class_dept }})
+                                </option>
+                            {% endfor %}
                         </select>
                     </div>
                     

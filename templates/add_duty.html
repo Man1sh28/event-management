@@ -41,16 +41,12 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Assign To *</label>
-                        <div class="mb-2">
-                            <select class="form-select" id="person_type" name="person_type" required onchange="updatePersonOptions()">
-                                <option value="">Select Type</option>
-                                <option value="participant">Participant (Teacher)</option>
-                                <option value="volunteer">Volunteer (Student)</option>
-                            </select>
-                        </div>
+                        <label for="person_id" class="form-label">Assign To *</label>
                         <select class="form-select" id="person_id" name="person_id" required>
-                            <option value="">Select Person</option>
+                            <option value="">Select Participant</option>
+                            {% for participant in participants %}
+                                <option value="{{ participant.id }}">{{ participant.name }} ({{ participant.class_dept }})</option>
+                            {% endfor %}
                         </select>
                     </div>
                     
@@ -154,30 +150,6 @@ function updateEventDetails() {
         document.getElementById('start_time').value = selectedOption.dataset.start;
         document.getElementById('end_time').value = selectedOption.dataset.end;
         document.getElementById('location').value = selectedOption.dataset.venue;
-    }
-}
-
-function updatePersonOptions() {
-    const personType = document.getElementById('person_type').value;
-    const personSelect = document.getElementById('person_id');
-    
-    // Clear existing options
-    personSelect.innerHTML = '<option value="">Select Person</option>';
-    
-    if (personType === 'participant') {
-        {% for participant in participants %}
-            const option = document.createElement('option');
-            option.value = '{{ participant.id }}';
-            option.textContent = '{{ participant.name }} ({{ participant.class_dept }})';
-            personSelect.appendChild(option);
-        {% endfor %}
-    } else if (personType === 'volunteer') {
-        {% for volunteer in volunteers %}
-            const option = document.createElement('option');
-            option.value = '{{ volunteer.id }}';
-            option.textContent = '{{ volunteer.name }} ({{ volunteer.school }} - Grade {{ volunteer.grade or "N/A" }})';
-            personSelect.appendChild(option);
-        {% endfor %}
     }
 }
 

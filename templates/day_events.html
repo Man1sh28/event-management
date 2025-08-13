@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Events for {{ selected_date }} - School Event Management{% endblock %}
+
+{% block content %}
+<div class="day-events-container">
+    <div class="day-header">
+        <h1>Events for {{ selected_date.strftime('%A, %B %d, %Y') }}</h1>
+        <div class="day-actions">
+            <a href="{{ url_for('add_calendar_event', year=year, month=month, day=day) }}" class="btn btn-primary">Add Event</a>
+            <a href="{{ url_for('calendar_view', year=year, month=month) }}" class="btn btn-secondary">Back to Calendar</a>
+        </div>
+    </div>
+
+    {% if events %}
+        <div class="events-list">
+            {% for event in events %}
+                <div class="event-card">
+                    <div class="event-time">
+                        <span class="time-label">Time:</span>
+                        <span class="time-value">{{ event.start_time[:5] }} - {{ event.end_time[:5] }}</span>
+                    </div>
+                    <div class="event-details">
+                        <h3>{{ event.name }}</h3>
+                        <p class="event-type">Type: {{ event.type }}</p>
+                        <p class="event-venue">Venue: {{ event.venue }}</p>
+                        {% if event.description %}
+                            <p class="event-description">{{ event.description }}</p>
+                        {% endif %}
+                        <p class="event-host">Host School: {{ event.host_school }}</p>
+                        {% if event.participating_schools %}
+                            <p class="event-schools">Participating Schools: {{ event.participating_schools }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="event-actions">
+                        <a href="{{ url_for('edit_event', id=event.id) }}" class="btn btn-edit">Edit</a>
+                        <form method="POST" action="{{ url_for('delete_event', id=event.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this event?');">
+                            <button type="submit" class="btn btn-delete">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-events">
+            <div class="no-events-content">
+                <h3>No events scheduled for this day</h3>
+                <p>There are no events scheduled for {{ selected_date.strftime('%B %d, %Y') }}.</p>
+                <a href="{{ url_for('add_calendar_event', year=year, month=month, day=day) }}" class="btn btn-primary">Add First Event</a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.day-events-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.day-header h1 {
+    margin: 0;
+    color: #2c3e50;
+}
+
+.day-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-primary {
+    background-color: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+}
+
+.btn-secondary {
+    background-color: #95a5a6;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #7f8c8d;
+}
+
+.btn-edit {
+    background-color: #f39c12;
+    color: white;
+}
+
+.btn-edit:hover {
+    background-color: #e67e22;
+}
+
+.btn-delete {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btn-delete:hover {
+    background-color: #c0392b;
+}
+
+.events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.event-card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.event-time {
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+.time-label {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.time-value {
+    color: #3498db;
+    font-weight: bold;
+}
+
+.event-details h3 {
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+    font-size: 20px;
+}
+
+.event-type,
+.event-venue,
+.event-host,
+.event-schools {
+    margin: 5px 0;
+    color: #555;
+}
+
+.event-description {
+    margin: 10px 0;
+    color: #666;
+    line-height: 1.5;
+}
+
+.event-actions {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.no-events {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.no-events-content h3 {
+    color: #7f8c8d;
+    margin-bottom: 10px;
+}
+
+.no-events-content p {
+    color: #95a5a6;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .day-header {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    
+    .day-actions {
+        justify-content: center;
+    }
+    
+    .event-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}

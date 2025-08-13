@@ -344,36 +344,8 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3 mb-3">
-        <div class="card text-white bg-info fade-in" style="animation-delay: 0.3s">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ total_volunteers }}</h4>
-                        <p class="card-text">Student Volunteers</p>
-                    </div>
-                    <div>
-                        <i class="fas fa-user-graduate fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card text-white bg-warning fade-in" style="animation-delay: 0.4s">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ total_duties }}</h4>
-                        <p class="card-text">Total Duties</p>
-                    </div>
-                    <div>
-                        <i class="fas fa-tasks fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+
+
 </div>
 
 <div class="row">
@@ -428,9 +400,7 @@
                     <a href="{{ url_for('add_participant') }}" class="btn btn-success">
                         <i class="fas fa-chalkboard-teacher"></i> Add Participant
                     </a>
-                    <a href="{{ url_for('add_volunteer') }}" class="btn btn-info">
-                        <i class="fas fa-user-graduate"></i> Add Volunteer
-                    </a>
+
                     <a href="{{ url_for('add_duty') }}" class="btn btn-warning">
                         <i class="fas fa-tasks"></i> Assign Duty
                     </a>
@@ -443,47 +413,7 @@
     </div>
 </div>
 
-{% if volunteers_by_school %}
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card content-card fade-in" style="animation-delay: 0.7s">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-school"></i> Volunteers by School
-                </h5>
-            </div>
-            <div class="card-body">
-                {% for school_data in volunteers_by_school %}
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>{{ school_data.school }}</span>
-                        <span class="badge bg-primary">{{ school_data.count }}</span>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-6">
-        <div class="card content-card fade-in" style="animation-delay: 0.8s">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-tasks"></i> Duty Assignments
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Assigned to Teachers</span>
-                    <span class="badge bg-success">{{ duties_by_participants }}</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span>Assigned to Volunteers</span>
-                    <span class="badge bg-info">{{ duties_by_volunteers }}</span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
+
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {

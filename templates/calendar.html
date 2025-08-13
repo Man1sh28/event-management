@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Calendar - School Event Management{% endblock %}
+
+{% block content %}
+<div class="calendar-container">
+    <div class="calendar-header">
+        <h1>Event Calendar</h1>
+        <div class="calendar-navigation">
+            <a href="{{ url_for('calendar_view', year=prev_year, month=prev_month) }}" class="nav-btn">&laquo; Previous</a>
+            <h2>{{ month_name }} {{ year }}</h2>
+            <a href="{{ url_for('calendar_view', year=next_year, month=next_month) }}" class="nav-btn">Next &raquo;</a>
+        </div>
+        <div class="calendar-actions">
+            <a href="{{ url_for('add_calendar_event') }}" class="btn btn-primary">Add Event</a>
+        </div>
+    </div>
+
+    <div class="calendar-grid">
+        <div class="calendar-weekdays">
+            <div class="weekday">Sunday</div>
+            <div class="weekday">Monday</div>
+            <div class="weekday">Tuesday</div>
+            <div class="weekday">Wednesday</div>
+            <div class="weekday">Thursday</div>
+            <div class="weekday">Friday</div>
+            <div class="weekday">Saturday</div>
+        </div>
+
+        <div class="calendar-days">
+            {% for week in calendar %}
+                {% for day in week %}
+                    {% if day != 0 %}
+                        {% set current_date = year ~ '-' ~ (month|string).zfill(2) ~ '-' ~ (day|string).zfill(2) %}
+                        <div class="calendar-day {% if day == datetime.now().day and month == datetime.now().month and year == datetime.now().year %}today{% endif %}">
+                            <div class="day-number">
+                                <a href="{{ url_for('day_events', year=year, month=month, day=day) }}">{{ day }}</a>
+                            </div>
+                            <div class="day-events">
+                                {% set day_str = year ~ '-' ~ (month|string).zfill(2) ~ '-' ~ (day|string).zfill(2) %}
+                                {% if events_by_date.get(day_str) %}
+                                    {% for event in events_by_date[day_str][:2] %}
+                                        <div class="event-item">
+                                            <span class="event-time">{{ event.start_time[:5] }}</span>
+                                            <span class="event-name">{{ event.name[:20] }}{% if event.name|length > 20 %}...{% endif %}</span>
+                                        </div>
+                                    {% endfor %}
+                                    {% if events_by_date[day_str]|length > 2 %}
+                                        <div class="more-events">+{{ events_by_date[day_str]|length - 2 }} more</div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            <div class="add-event-link">
+                                <a href="{{ url_for('add_calendar_event', year=year, month=month, day=day) }}" class="add-btn">+</a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="calendar-day empty"></div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+.calendar-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.calendar-header h1 {
+    margin: 0;
+    color: #2c3e50;
+}
+
+.calendar-navigation {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.calendar-navigation h2 {
+    margin: 0;
+    color: #34495e;
+    min-width: 200px;
+    text-align: center;
+}
+
+.nav-btn {
+    padding: 8px 16px;
+    background-color: #3498db;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.nav-btn:hover {
+    background-color: #2980b9;
+}
+
+.calendar-actions .btn {
+    padding: 10px 20px;
+    background-color: #27ae60;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.calendar-actions .btn:hover {
+    background-color: #229954;
+}
+
+.calendar-grid {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background-color: #34495e;
+    color: white;
+    font-weight: bold;
+}
+
+.weekday {
+    padding: 15px;
+    text-align: center;
+    border-right: 1px solid #ddd;
+}
+
+.weekday:last-child {
+    border-right: none;
+}
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: 120px;
+}
+
+.calendar-day {
+    border-right: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    padding: 10px;
+    position: relative;
+    min-height: 120px;
+    background-color: white;
+}
+
+.calendar-day:nth-child(7n) {
+    border-right: none;
+}
+
+.calendar-day.empty {
+    background-color: #f8f9fa;
+}
+
+.calendar-day.today {
+    background-color: #e8f4f8;
+    border: 2px solid #3498db;
+}
+
+.day-number {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.day-number a {
+    color: #2c3e50;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.day-number a:hover {
+    color: #3498db;
+}
+
+.day-events {
+    margin-bottom: 5px;
+}
+
+.event-item {
+    font-size: 12px;
+    margin-bottom: 2px;
+    padding: 2px 4px;
+    background-color: #f8f9fa;
+    border-radius: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.event-time {
+    color: #7f8c8d;
+    font-weight: bold;
+}
+
+.event-name {
+    margin-left: 3px;
+}
+
+.more-events {
+    font-size: 11px;
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+.add-event-link {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+}
+
+.add-btn {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-color: #27ae60;
+    color: white;
+    text-align: center;
+    line-height: 20px;
+    border-radius: 50%;
+    text-decoration: none;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.add-btn:hover {
+    background-color: #229954;
+}
+
+@media (max-width: 768px) {
+    .calendar-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .calendar-navigation {
+        justify-content: center;
+    }
+    
+    .calendar-days {
+        grid-auto-rows: 100px;
+    }
+    
+    .weekday {
+        font-size: 12px;
+        padding: 10px 5px;
+    }
+    
+    .calendar-day {
+        padding: 5px;
+        font-size: 12px;
+    }
+}
+</style>
+{% endblock %}

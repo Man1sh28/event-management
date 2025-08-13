@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 import sqlite3
 import os
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+import calendar
 import json
 
 app = Flask(__name__)
@@ -43,20 +44,7 @@ def init_db():
         )
     ''')
     
-    # Volunteers table (for student volunteers)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS volunteers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            school TEXT NOT NULL,
-            grade INTEGER,
-            contact TEXT,
-            emergency_contact TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # Duties table - Fixed structure to match template expectations
+   
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS duties (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,7 +76,117 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+# Calendar helper functions
+def get_calendar_data(year, month):
+    """Get calendar data for a given month"""
+    cal = calendar.monthcalendar(year, month)
+    month_name = calendar.month_name[month]
+    
+    # Get events for this month
+    conn = get_db_connection()
+    start_date = date(year, month, 1)
+    last_day = calendar.monthrange(year, month)[1]
+    end_date = date(year, month, last_day)
+    
+    events = conn.execute('''
+        SELECT * FROM events 
+        WHERE event_date >= ? AND event_date <= ?
+        ORDER BY event_date, start_time
+    ''', (start_date, end_date)).fetchall()
+    
+    conn.close()
+    
+    # Group events by date
+    events_by_date = {}
+    for event in events:
+        event_date = event['event_date']
+        if event_date not in events_by_date:
+            events_by_date[event_date] = []
+        events_by_date[event_date].append(event)
+    
+    from datetime import datetime as dt
+    return {
+        'calendar': cal,
+        'month_name': month_name,
+        'year': year,
+        'month': month,
+        'events_by_date': events_by_date,
+        'prev_month': month - 1 if month > 1 else 12,
+        'prev_year': year if month > 1 else year - 1,
+        'next_month': month + 1 if month < 12 else 1,
+        'next_year': year if month < 12 else year + 1,
+        'datetime': dt
+    }
+
 # Routes
+@app.route('/calendar')
+def calendar_view():
+    """Display calendar view"""
+    year = int(request.args.get('year', datetime.now().year))
+    month = int(request.args.get('month', datetime.now().month))
+    
+    calendar_data = get_calendar_data(year, month)
+    return render_template('calendar.html', **calendar_data)
+
+@app.route('/calendar/<int:year>/<int:month>/<int:day>')
+def day_events(year, month, day):
+    """Display events for a specific day"""
+    selected_date = date(year, month, day)
+    
+    conn = get_db_connection()
+    events = conn.execute('''
+        SELECT * FROM events 
+        WHERE event_date = ?
+        ORDER BY start_time
+    ''', (selected_date,)).fetchall()
+    conn.close()
+    
+    return render_template('day_events.html', 
+                         events=events, 
+                         selected_date=selected_date,
+                         year=year, month=month, day=day)
+
+@app.route('/calendar/add_event', methods=['GET', 'POST'])
+def add_calendar_event():
+    """Add event from calendar view"""
+    if request.method == 'POST':
+        name = request.form['name']
+        event_type = request.form['type']
+        event_date = request.form['event_date']
+        start_time = request.form['start_time']
+        end_time = request.form['end_time']
+        venue = request.form['venue']
+        description = request.form['description']
+        host_school = request.form['host_school']
+        participating_schools = request.form['participating_schools']
+        
+        conn = get_db_connection()
+        conn.execute('''
+            INSERT INTO events (name, type, event_date, start_time, end_time, venue,
+                              description, host_school, participating_schools)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (name, event_type, event_date, start_time, end_time, venue,
+              description, host_school, participating_schools))
+        conn.commit()
+        conn.close()
+        
+        flash('Event added successfully!', 'success')
+        
+        # Redirect back to calendar or day view
+        year = int(request.args.get('year', datetime.now().year))
+        month = int(request.args.get('month', datetime.now().month))
+        day = int(request.args.get('day', 1))
+        
+        return redirect(url_for('calendar_view', year=year, month=month))
+    
+    # Pre-fill date if provided
+    year = request.args.get('year', datetime.now().year)
+    month = request.args.get('month', datetime.now().month)
+    day = request.args.get('day', datetime.now().day)
+    prefill_date = f"{year}-{str(month).zfill(2)}-{str(day).zfill(2)}"
+    
+    return render_template('add_calendar_event.html', prefill_date=prefill_date)
+
 @app.route('/')
 def dashboard():
     conn = get_db_connection()
@@ -97,7 +195,6 @@ def dashboard():
     total_events = conn.execute('SELECT COUNT(*) as count FROM events').fetchone()['count']
     total_participants = conn.execute('SELECT COUNT(*) as count FROM participants').fetchone()['count']
     total_teachers = conn.execute('SELECT COUNT(*) as count FROM participants WHERE type = "teacher"').fetchone()['count']
-    total_volunteers = conn.execute('SELECT COUNT(*) as count FROM volunteers').fetchone()['count']
     total_duties = conn.execute('SELECT COUNT(*) as count FROM duties').fetchone()['count']
 
     # Upcoming events
@@ -108,38 +205,14 @@ def dashboard():
         LIMIT 5
     ''').fetchall()
 
-    # Get volunteers by school for dashboard
-    volunteers_by_school = conn.execute('''
-        SELECT school, COUNT(*) as count
-        FROM volunteers
-        GROUP BY school
-        ORDER BY count DESC
-        LIMIT 5
-    ''').fetchall()
-
-    # Get duty assignments by person type
-    duties_by_person_type = conn.execute('''
-        SELECT 
-            CASE 
-                WHEN participant_id IS NOT NULL THEN 'Participant'
-                ELSE 'Volunteer'
-            END as person_type,
-            COUNT(*) as count
-        FROM duties
-        GROUP BY person_type
-    ''').fetchall()
-
     conn.close()
     
     return render_template('dashboard.html', 
                          total_events=total_events,
                          total_participants=total_participants,
                          total_teachers=total_teachers,
-                         total_volunteers=total_volunteers,
                          total_duties=total_duties,
-                         upcoming_events=upcoming_events,
-                         volunteers_by_school=volunteers_by_school,
-                         duties_by_person_type=duties_by_person_type)
+                         upcoming_events=upcoming_events)
 
 @app.route('/events')
 def events():
@@ -321,116 +394,28 @@ def delete_participant(id):
     return redirect(url_for('participants'))
 
 # Volunteers routes
-@app.route('/volunteers')
-def volunteers():
-    conn = get_db_connection()
-    search = request.args.get('search', '')
-    school_filter = request.args.get('school', '')
-    
-    query = 'SELECT * FROM volunteers WHERE 1=1'
-    params = []
-    
-    if search:
-        query += ' AND (name LIKE ? OR school LIKE ?)'
-        params.extend([f'%{search}%', f'%{search}%'])
-    
-    if school_filter:
-        query += ' AND school = ?'
-        params.append(school_filter)
-    
-    query += ' ORDER BY school, name'
-    
-    volunteers = conn.execute(query, params).fetchall()
-    
-    # Get unique schools for filter
-    schools = conn.execute('SELECT DISTINCT school FROM volunteers ORDER BY school').fetchall()
-    
-    conn.close()
-    
-    return render_template('volunteers.html', volunteers=volunteers, schools=schools, 
-                         search=search, school_filter=school_filter)
 
-@app.route('/volunteers/add', methods=['GET', 'POST'])
-def add_volunteer():
-    if request.method == 'POST':
-        name = request.form['name']
-        school = request.form['school']
-        grade = request.form['grade'] or None
-        contact = request.form['contact']
-        emergency_contact = request.form['emergency_contact']
-        
-        conn = get_db_connection()
-        conn.execute('''
-            INSERT INTO volunteers (name, school, grade, contact, emergency_contact)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (name, school, grade, contact, emergency_contact))
-        conn.commit()
-        conn.close()
-        
-        flash('Volunteer added successfully!', 'success')
-        return redirect(url_for('volunteers'))
-    
-    return render_template('add_volunteer.html')
-
-@app.route('/volunteers/<int:id>/edit', methods=['GET', 'POST'])
-def edit_volunteer(id):
-    conn = get_db_connection()
-    volunteer = conn.execute('SELECT * FROM volunteers WHERE id = ?', (id,)).fetchone()
-    
-    if request.method == 'POST':
-        name = request.form['name']
-        school = request.form['school']
-        grade = request.form['grade'] or None
-        contact = request.form['contact']
-        emergency_contact = request.form['emergency_contact']
-        
-        conn.execute('''
-            UPDATE volunteers SET name = ?, school = ?, grade = ?, 
-                           contact = ?, emergency_contact = ? WHERE id = ?
-        ''', (name, school, grade, contact, emergency_contact, id))
-        conn.commit()
-        conn.close()
-        
-        flash('Volunteer updated successfully!', 'success')
-        return redirect(url_for('volunteers'))
-    
-    conn.close()
-    return render_template('edit_volunteer.html', volunteer=volunteer)
-
-@app.route('/volunteers/<int:id>/delete', methods=['POST'])
-def delete_volunteer(id):
-    conn = get_db_connection()
-    conn.execute('DELETE FROM volunteers WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
-    
-    flash('Volunteer deleted successfully!', 'success')
-    return redirect(url_for('volunteers'))
 
 @app.route('/duties')
 def duties():
     conn = get_db_connection()
     
-    # Fixed query - use correct column names
     duties = conn.execute('''
         SELECT d.*, e.name as event_name, e.event_date as event_date,
-               COALESCE(p.name, v.name) as person_name,
-               CASE WHEN d.participant_id IS NOT NULL THEN 'Participant' ELSE 'Volunteer' END as person_type
+               p.name as person_name, 'Participant' as person_type
         FROM duties d
         JOIN events e ON d.event_id = e.id
-        LEFT JOIN participants p ON d.participant_id = p.id
-        LEFT JOIN volunteers v ON d.volunteer_id = v.id
+        JOIN participants p ON d.participant_id = p.id
         ORDER BY e.event_date, d.start_time
     ''').fetchall()
     
     events = conn.execute('SELECT id, name, event_date FROM events ORDER BY event_date').fetchall()
     participants = conn.execute('SELECT id, name, class_dept FROM participants ORDER BY name').fetchall()
-    volunteers = conn.execute('SELECT id, name, school, grade FROM volunteers ORDER BY school, name').fetchall()
     
     conn.close()
     
     return render_template('duties.html', duties=duties, events=events, 
-                         participants=participants, volunteers=volunteers)
+                         participants=participants)
 
 @app.route('/duties/assign', methods=['GET', 'POST'])
 def assign_duty():
@@ -444,21 +429,14 @@ def assign_duty():
         description = request.form['description']
         notes = request.form['notes']
         
-        # Determine if assigning to participant or volunteer
-        person_type = request.form['person_type']
-        if person_type == 'participant':
-            participant_id = request.form['person_id']
-            volunteer_id = None
-        else:  # volunteer
-            volunteer_id = request.form['person_id']
-            participant_id = None
+        participant_id = request.form['person_id']
         
         conn = get_db_connection()
         conn.execute('''
-            INSERT INTO duties (event_id, participant_id, volunteer_id, duty_type, 
+            INSERT INTO duties (event_id, participant_id, duty_type, 
                               duty_date, start_time, end_time, location, description, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (event_id, participant_id, volunteer_id, duty_type, 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (event_id, participant_id, duty_type, 
               duty_date, start_time, end_time, location, description, notes))
         conn.commit()
         conn.close()
@@ -469,10 +447,9 @@ def assign_duty():
     conn = get_db_connection()
     events = conn.execute('SELECT id, name, event_date, start_time, end_time, venue FROM events ORDER BY event_date').fetchall()
     participants = conn.execute('SELECT id, name, class_dept FROM participants ORDER BY name').fetchall()
-    volunteers = conn.execute('SELECT id, name, school, grade FROM volunteers ORDER BY school, name').fetchall()
     conn.close()
     
-    return render_template('add_duty.html', events=events, participants=participants, volunteers=volunteers)
+    return render_template('add_duty.html', events=events, participants=participants)
 
 # Alternative route name for backward compatibility
 @app.route('/duties/add', methods=['GET', 'POST'])
@@ -486,6 +463,7 @@ def edit_duty(id):
     
     if request.method == 'POST':
         event_id = request.form['event_id']
+        participant_id = request.form['person_id']
         duty_type = request.form['duty_type']
         duty_date = request.form['duty_date']
         start_time = request.form['start_time']
@@ -494,20 +472,11 @@ def edit_duty(id):
         description = request.form['description']
         notes = request.form['notes']
         
-        # Determine if assigning to participant or volunteer
-        person_type = request.form['person_type']
-        if person_type == 'participant':
-            participant_id = request.form['person_id']
-            volunteer_id = None
-        else:  # volunteer
-            volunteer_id = request.form['person_id']
-            participant_id = None
-        
         conn.execute('''
-            UPDATE duties SET event_id = ?, participant_id = ?, volunteer_id = ?, duty_type = ?,
+            UPDATE duties SET event_id = ?, participant_id = ?, duty_type = ?,
                            duty_date = ?, start_time = ?, end_time = ?, location = ?, 
                            description = ?, notes = ? WHERE id = ?
-        ''', (event_id, participant_id, volunteer_id, duty_type, duty_date, 
+        ''', (event_id, participant_id, duty_type, duty_date, 
               start_time, end_time, location, description, notes, id))
         conn.commit()
         conn.close()
@@ -517,11 +486,10 @@ def edit_duty(id):
     
     events = conn.execute('SELECT id, name, event_date, start_time, end_time, venue FROM events ORDER BY event_date').fetchall()
     participants = conn.execute('SELECT id, name, class_dept FROM participants ORDER BY name').fetchall()
-    volunteers = conn.execute('SELECT id, name, school, grade FROM volunteers ORDER BY school, name').fetchall()
     conn.close()
     
     return render_template('edit_duty.html', duty=duty, events=events, 
-                         participants=participants, volunteers=volunteers)
+                         participants=participants)
 
 @app.route('/duties/<int:id>/delete', methods=['POST'])
 def delete_duty(id):
@@ -548,13 +516,7 @@ def api_participants():
     
     return jsonify([dict(participant) for participant in participants])
 
-@app.route('/api/volunteers')
-def api_volunteers():
-    conn = get_db_connection()
-    volunteers = conn.execute('SELECT * FROM volunteers ORDER BY school, name').fetchall()
-    conn.close()
-    
-    return jsonify([dict(volunteer) for volunteer in volunteers])
+
 
 @app.route('/api/duties')
 def api_duties():

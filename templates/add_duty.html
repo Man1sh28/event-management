@@ -31,8 +31,6 @@
                             {% for event in events %}
                                 <option value="{{ event.id }}" 
                                         data-date="{{ event.event_date }}" 
-                                        data-start="{{ event.start_time }}" 
-                                        data-end="{{ event.end_time }}"
                                         data-venue="{{ event.venue }}">
                                     {{ event.name }} - {{ event.event_date }}
                                 </option>
@@ -65,17 +63,13 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-6 mb-3">
                             <label for="duty_date" class="form-label">Duty Date *</label>
                             <input type="date" class="form-control" id="duty_date" name="duty_date" required>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="start_time" class="form-label">Start Time *</label>
-                            <input type="time" class="form-control" id="start_time" name="start_time" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="end_time" class="form-label">End Time *</label>
-                            <input type="time" class="form-control" id="end_time" name="end_time" required>
+                        <div class="col-md-6 mb-3">
+                            <label for="time_slot" class="form-label">Time Slot *</label>
+                            <input type="text" class="form-control" id="time_slot" name="time_slot" placeholder="e.g., 9:00 AM - 12:00 PM" required>
                         </div>
                     </div>
                     
@@ -147,8 +141,6 @@ function updateEventDetails() {
     
     if (selectedOption.value) {
         document.getElementById('duty_date').value = selectedOption.dataset.date;
-        document.getElementById('start_time').value = selectedOption.dataset.start;
-        document.getElementById('end_time').value = selectedOption.dataset.end;
         document.getElementById('location').value = selectedOption.dataset.venue;
     }
 }

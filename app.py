@@ -406,7 +406,7 @@ def duties():
         FROM duties d
         JOIN events e ON d.event_id = e.id
         JOIN participants p ON d.participant_id = p.id
-        ORDER BY e.event_date, d.start_time
+        ORDER BY e.event_date
     ''').fetchall()
     
     events = conn.execute('SELECT id, name, event_date FROM events ORDER BY event_date').fetchall()
@@ -423,8 +423,7 @@ def assign_duty():
         event_id = request.form['event_id']
         duty_type = request.form['duty_type']
         duty_date = request.form['duty_date']
-        start_time = request.form['start_time']
-        end_time = request.form['end_time']
+        time_slot = request.form['time_slot']
         location = request.form['location']
         description = request.form['description']
         notes = request.form['notes']
@@ -434,10 +433,10 @@ def assign_duty():
         conn = get_db_connection()
         conn.execute('''
             INSERT INTO duties (event_id, participant_id, duty_type, 
-                              duty_date, start_time, end_time, location, description, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                              duty_date, time_slot, location, description, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (event_id, participant_id, duty_type, 
-              duty_date, start_time, end_time, location, description, notes))
+              duty_date, time_slot, location, description, notes))
         conn.commit()
         conn.close()
         
@@ -445,7 +444,7 @@ def assign_duty():
         return redirect(url_for('duties'))
     
     conn = get_db_connection()
-    events = conn.execute('SELECT id, name, event_date, start_time, end_time, venue FROM events ORDER BY event_date').fetchall()
+    events = conn.execute('SELECT id, name, event_date, venue FROM events ORDER BY event_date').fetchall()
     participants = conn.execute('SELECT id, name, class_dept FROM participants ORDER BY name').fetchall()
     conn.close()
     
@@ -474,17 +473,17 @@ def edit_duty(id):
         
         conn.execute('''
             UPDATE duties SET event_id = ?, participant_id = ?, duty_type = ?,
-                           duty_date = ?, start_time = ?, end_time = ?, location = ?, 
+                           duty_date = ?, time_slot = ?, location = ?, 
                            description = ?, notes = ? WHERE id = ?
         ''', (event_id, participant_id, duty_type, duty_date, 
-              start_time, end_time, location, description, notes, id))
+              time_slot, location, description, notes, id))
         conn.commit()
         conn.close()
         
         flash('Duty updated successfully!', 'success')
         return redirect(url_for('duties'))
     
-    events = conn.execute('SELECT id, name, event_date, start_time, end_time, venue FROM events ORDER BY event_date').fetchall()
+    events = conn.execute('SELECT id, name, event_date, venue FROM events ORDER BY event_date').fetchall()
     participants = conn.execute('SELECT id, name, class_dept FROM participants ORDER BY name').fetchall()
     conn.close()
     
@@ -521,15 +520,13 @@ def api_participants():
 @app.route('/api/duties')
 def api_duties():
     conn = get_db_connection()
-    # Fixed query - handle both participants and volunteers
     duties = conn.execute('''
         SELECT d.*, e.name as event_name, 
-               COALESCE(p.name, v.name) as person_name,
-               CASE WHEN d.participant_id IS NOT NULL THEN 'Participant' ELSE 'Volunteer' END as person_type
+               p.name as person_name,
+               'Participant' as person_type
         FROM duties d
         JOIN events e ON d.event_id = e.id
-        LEFT JOIN participants p ON d.participant_id = p.id
-        LEFT JOIN volunteers v ON d.volunteer_id = v.id
+        JOIN participants p ON d.participant_id = p.id
         ORDER BY d.assigned_at DESC
     ''').fetchall()
     conn.close()
@@ -543,9 +540,7 @@ def reports():
     stats = {
         'total_events': conn.execute('SELECT COUNT(*) as count FROM events').fetchone()['count'],
         'total_participants': conn.execute('SELECT COUNT(*) as count FROM participants').fetchone()['count'],
-        'total_volunteers': conn.execute('SELECT COUNT(*) as count FROM volunteers').fetchone()['count'],
-        'total_duties': conn.execute('SELECT COUNT(*) as count FROM duties').fetchone()['count'],
-        'unique_schools': conn.execute('SELECT COUNT(DISTINCT school) as count FROM volunteers').fetchone()['count']
+        'total_duties': conn.execute('SELECT COUNT(*) as count FROM duties').fetchone()['count']
     }
     
     # Get events by type for chart
@@ -577,13 +572,7 @@ def reports():
     events_timeline_data = [row['count'] for row in events_timeline]
     
     # Get top participating schools
-    top_schools = conn.execute('''
-        SELECT school, COUNT(*) as participants
-        FROM volunteers
-        GROUP BY school
-        ORDER BY participants DESC
-        LIMIT 5
-    ''').fetchall()
+    top_schools = []
     
     # Get duty statistics
     duty_stats = conn.execute('''
@@ -613,8 +602,8 @@ def export_data():
         data = conn.execute('SELECT * FROM events ORDER BY event_date DESC').fetchall()
     elif export_type == 'participants':
         data = conn.execute('SELECT * FROM participants ORDER BY name').fetchall()
-    elif export_type == 'volunteers':
-        data = conn.execute('SELECT * FROM volunteers ORDER BY school, name').fetchall()
+    elif export_type == 'teachers':
+        data = conn.execute('SELECT * FROM participants WHERE type = "teacher" ORDER BY class_dept, name').fetchall()
     elif export_type == 'duties':
         data = conn.execute('''
             SELECT d.*, e.name as event_name, 

@@ -5,268 +5,1016 @@
 {% block content %}
 <div class="calendar-container">
     <div class="calendar-header">
-        <h1>Event Calendar</h1>
-        <div class="calendar-navigation">
-            <a href="{{ url_for('calendar_view', year=prev_year, month=prev_month) }}" class="nav-btn">&laquo; Previous</a>
-            <h2>{{ month_name }} {{ year }}</h2>
-            <a href="{{ url_for('calendar_view', year=next_year, month=next_month) }}" class="nav-btn">Next &raquo;</a>
+        <div class="header-content">
+            <h1 class="main-title">
+                <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                Event Calendar
+            </h1>
+            <div class="calendar-actions">
+                <a href="{{ url_for('add_calendar_event') }}" class="btn btn-primary">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add Event
+                </a>
+            </div>
         </div>
-        <div class="calendar-actions">
-            <a href="{{ url_for('add_calendar_event') }}" class="btn btn-primary">Add Event</a>
+        
+        <div class="calendar-navigation">
+            <a href="{{ url_for('calendar_view', year=prev_year, month=prev_month) }}" class="nav-btn prev">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <polyline points="15,18 9,12 15,6"></polyline>
+                </svg>
+                Previous
+            </a>
+            <h2 class="current-month">{{ month_name }} {{ year }}</h2>
+            <a href="{{ url_for('calendar_view', year=next_year, month=next_month) }}" class="nav-btn next">
+                Next
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <polyline points="9,18 15,12 9,6"></polyline>
+                </svg>
+            </a>
         </div>
     </div>
 
-    <div class="calendar-grid">
-        <div class="calendar-weekdays">
-            <div class="weekday">Sunday</div>
-            <div class="weekday">Monday</div>
-            <div class="weekday">Tuesday</div>
-            <div class="weekday">Wednesday</div>
-            <div class="weekday">Thursday</div>
-            <div class="weekday">Friday</div>
-            <div class="weekday">Saturday</div>
-        </div>
+    <div class="calendar-wrapper">
+        <div class="calendar-grid">
+            <div class="calendar-weekdays">
+                <div class="weekday">Sunday</div>
+                <div class="weekday">Monday</div>
+                <div class="weekday">Tuesday</div>
+                <div class="weekday">Wednesday</div>
+                <div class="weekday">Thursday</div>
+                <div class="weekday">Friday</div>
+                <div class="weekday">Saturday</div>
+            </div>
 
-        <div class="calendar-days">
-            {% for week in calendar %}
-                {% for day in week %}
-                    {% if day != 0 %}
-                        {% set current_date = year ~ '-' ~ (month|string).zfill(2) ~ '-' ~ (day|string).zfill(2) %}
-                        <div class="calendar-day {% if day == datetime.now().day and month == datetime.now().month and year == datetime.now().year %}today{% endif %}">
-                            <div class="day-number">
-                                <a href="{{ url_for('day_events', year=year, month=month, day=day) }}">{{ day }}</a>
-                            </div>
-                            <div class="day-events">
-                                {% set day_str = year ~ '-' ~ (month|string).zfill(2) ~ '-' ~ (day|string).zfill(2) %}
-                                {% if events_by_date.get(day_str) %}
-                                    {% for event in events_by_date[day_str][:2] %}
-                                        <div class="event-item">
-                                            <span class="event-time">{{ event.start_time[:5] }}</span>
-                                            <span class="event-name">{{ event.name[:20] }}{% if event.name|length > 20 %}...{% endif %}</span>
-                                        </div>
-                                    {% endfor %}
-                                    {% if events_by_date[day_str]|length > 2 %}
-                                        <div class="more-events">+{{ events_by_date[day_str]|length - 2 }} more</div>
+            <div class="calendar-days">
+                {% for week in calendar %}
+                    {% for day in week %}
+                        {% if day != 0 %}
+                            {% set current_date = year ~ '-' ~ (month|string).zfill(2) ~ '-' ~ (day|string).zfill(2) %}
+                            <div class="calendar-day {% if day == datetime.now().day and month == datetime.now().month and year == datetime.now().year %}today{% endif %}">
+                                <div class="day-header">
+                                    <div class="day-number">
+                                        <a href="{{ url_for('day_events', year=year, month=month, day=day) }}">{{ day }}</a>
+                                    </div>
+                                    <div class="add-event-link">
+                                        <a href="{{ url_for('add_calendar_event', year=year, month=month, day=day) }}" class="add-btn" title="Add Event">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="day-events">
+                                    {% set day_str = year ~ '-' ~ (month|string).zfill(2) ~ '-' ~ (day|string).zfill(2) %}
+                                    {% if events_by_date.get(day_str) %}
+                                        {% for event in events_by_date[day_str][:3] %}
+                                            <div class="event-item event-type-{{ loop.index0 % 4 }}">
+                                                <div class="event-indicator"></div>
+                                                <div class="event-content">
+                                                    <span class="event-time">{{ event.start_time[:5] }}</span>
+                                                    <span class="event-name">{{ event.name[:16] }}{% if event.name|length > 16 %}...{% endif %}</span>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                        {% if events_by_date[day_str]|length > 3 %}
+                                            <div class="more-events">+{{ events_by_date[day_str]|length - 3 }} more</div>
+                                        {% endif %}
                                     {% endif %}
-                                {% endif %}
+                                </div>
+                                <div class="day-gradient"></div>
                             </div>
-                            <div class="add-event-link">
-                                <a href="{{ url_for('add_calendar_event', year=year, month=month, day=day) }}" class="add-btn">+</a>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="calendar-day empty"></div>
-                    {% endif %}
+                        {% else %}
+                            <div class="calendar-day empty"></div>
+                        {% endif %}
+                    {% endfor %}
                 {% endfor %}
-            {% endfor %}
+            </div>
         </div>
+    </div>
+    
+    <div class="floating-elements">
+        <div class="floating-circle circle-1"></div>
+        <div class="floating-circle circle-2"></div>
+        <div class="floating-circle circle-3"></div>
+        <div class="floating-circle circle-4"></div>
     </div>
 </div>
 
 <style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
 .calendar-container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 30px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 8s ease infinite;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.floating-elements {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.floating-circle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    animation: float 6s ease-in-out infinite;
+}
+
+.circle-1 {
+    width: 80px;
+    height: 80px;
+    top: 10%;
+    left: 10%;
+    animation-delay: 0s;
+}
+
+.circle-2 {
+    width: 120px;
+    height: 120px;
+    top: 20%;
+    right: 15%;
+    animation-delay: 2s;
+}
+
+.circle-3 {
+    width: 60px;
+    height: 60px;
+    bottom: 30%;
+    left: 20%;
+    animation-delay: 4s;
+}
+
+.circle-4 {
+    width: 100px;
+    height: 100px;
+    bottom: 20%;
+    right: 10%;
+    animation-delay: 1s;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(180deg); }
 }
 
 .calendar-header {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 24px;
+    padding: 35px;
+    margin-bottom: 30px;
+    backdrop-filter: blur(20px);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.1),
+        0 2px 8px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.calendar-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.5), transparent);
+}
+
+.header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 20px;
 }
 
-.calendar-header h1 {
+.main-title {
+    display: flex;
+    align-items: center;
+    gap: 16px;
     margin: 0;
-    color: #2c3e50;
+    font-size: 2.8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+}
+
+.calendar-icon {
+    width: 44px;
+    height: 44px;
+    stroke: url(#gradient);
+    stroke-width: 2.5;
+    filter: drop-shadow(0 2px 4px rgba(124, 58, 237, 0.3));
 }
 
 .calendar-navigation {
     display: flex;
     align-items: center;
-    gap: 20px;
+    justify-content: center;
+    gap: 35px;
 }
 
-.calendar-navigation h2 {
+.current-month {
     margin: 0;
-    color: #34495e;
-    min-width: 200px;
+    font-size: 2rem;
+    font-weight: 700;
+    min-width: 240px;
     text-align: center;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.01em;
 }
 
 .nav-btn {
-    padding: 8px 16px;
-    background-color: #3498db;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     text-decoration: none;
-    border-radius: 4px;
-    transition: background-color 0.3s;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 4px 20px rgba(102, 126, 234, 0.4),
+        0 1px 3px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.6s;
+}
+
+.nav-btn:hover::before {
+    left: 100%;
+}
+
+.nav-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2.5;
+    transition: transform 0.3s ease;
 }
 
 .nav-btn:hover {
-    background-color: #2980b9;
+    transform: translateY(-3px);
+    box-shadow: 
+        0 8px 30px rgba(102, 126, 234, 0.5),
+        0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.calendar-actions .btn {
-    padding: 10px 20px;
-    background-color: #27ae60;
+.nav-btn:hover svg {
+    transform: scale(1.1);
+}
+
+.nav-btn.prev:hover svg {
+    transform: scale(1.1) translateX(-2px);
+}
+
+.nav-btn.next:hover svg {
+    transform: scale(1.1) translateX(2px);
+}
+
+.btn-primary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 28px;
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
     color: white;
     text-decoration: none;
-    border-radius: 4px;
-    transition: background-color 0.3s;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 4px 20px rgba(17, 153, 142, 0.4),
+        0 1px 3px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
 }
 
-.calendar-actions .btn:hover {
-    background-color: #229954;
+.btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.6s;
+}
+
+.btn-primary:hover::before {
+    left: 100%;
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 
+        0 8px 30px rgba(17, 153, 142, 0.5),
+        0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-icon {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2.5;
+}
+
+.calendar-wrapper {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 24px;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.1),
+        0 2px 8px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .calendar-grid {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    overflow: hidden;
+    width: 100%;
 }
 
 .calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    background-color: #34495e;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
     color: white;
-    font-weight: bold;
+    font-weight: 700;
+    position: relative;
+}
+
+.calendar-weekdays::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
 }
 
 .weekday {
-    padding: 15px;
+    padding: 24px 15px;
     text-align: center;
-    border-right: 1px solid #ddd;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    position: relative;
 }
 
-.weekday:last-child {
-    border-right: none;
+.weekday:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .calendar-days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    grid-auto-rows: 120px;
+    grid-auto-rows: 150px;
+    gap: 2px;
+    background: linear-gradient(45deg, #e8e8e8, #f5f5f5);
+    padding: 2px;
 }
 
 .calendar-day {
-    border-right: 1px solid #ddd;
-    border-bottom: 1px solid #ddd;
-    padding: 10px;
+    background: white;
+    padding: 15px;
     position: relative;
-    min-height: 120px;
-    background-color: white;
+    min-height: 150px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    border-radius: 12px;
+    overflow: hidden;
 }
 
-.calendar-day:nth-child(7n) {
-    border-right: none;
+.day-gradient {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+    transform: scaleX(0);
+    transition: transform 0.4s ease;
+}
+
+.calendar-day:hover .day-gradient {
+    transform: scaleX(1);
+}
+
+.calendar-day:hover {
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    transform: translateY(-4px);
+    box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.15),
+        0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .calendar-day.empty {
-    background-color: #f8f9fa;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    cursor: default;
+    opacity: 0.6;
+}
+
+.calendar-day.empty:hover {
+    transform: none;
+    box-shadow: none;
 }
 
 .calendar-day.today {
-    background-color: #e8f4f8;
-    border: 2px solid #3498db;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 
+        0 8px 32px rgba(102, 126, 234, 0.4),
+        0 2px 8px rgba(0, 0, 0, 0.1);
+    animation: todayGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes todayGlow {
+    from {
+        box-shadow: 
+            0 8px 32px rgba(102, 126, 234, 0.4),
+            0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    to {
+        box-shadow: 
+            0 12px 40px rgba(102, 126, 234, 0.6),
+            0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+}
+
+.calendar-day.today .day-number a {
+    color: white;
+    font-weight: 800;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-day.today .event-item {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-left: 3px solid rgba(255, 255, 255, 0.5);
+}
+
+.calendar-day.today .event-time {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.calendar-day.today .add-btn {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    backdrop-filter: blur(10px);
+}
+
+.calendar-day.today .add-btn:hover {
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(1.15);
+}
+
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
 }
 
 .day-number {
-    font-weight: bold;
-    margin-bottom: 5px;
+    font-weight: 800;
+    font-size: 1.2rem;
 }
 
 .day-number a {
-    color: #2c3e50;
+    color: #1a1a2e;
     text-decoration: none;
-    font-size: 16px;
+    transition: all 0.3s ease;
+    padding: 4px 8px;
+    border-radius: 8px;
 }
 
 .day-number a:hover {
-    color: #3498db;
-}
-
-.day-events {
-    margin-bottom: 5px;
-}
-
-.event-item {
-    font-size: 12px;
-    margin-bottom: 2px;
-    padding: 2px 4px;
-    background-color: #f8f9fa;
-    border-radius: 3px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.event-time {
-    color: #7f8c8d;
-    font-weight: bold;
-}
-
-.event-name {
-    margin-left: 3px;
-}
-
-.more-events {
-    font-size: 11px;
-    color: #7f8c8d;
-    font-style: italic;
+    color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+    transform: scale(1.05);
 }
 
 .add-event-link {
-    position: absolute;
-    bottom: 5px;
-    right: 5px;
+    opacity: 0;
+    transition: all 0.4s ease;
+    transform: translateY(-5px);
+}
+
+.calendar-day:hover .add-event-link {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .add-btn {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    background-color: #27ae60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
     color: white;
-    text-align: center;
-    line-height: 20px;
     border-radius: 50%;
     text-decoration: none;
-    font-size: 14px;
-    transition: background-color 0.3s;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 3px 12px rgba(17, 153, 142, 0.4);
+}
+
+.add-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 3;
 }
 
 .add-btn:hover {
-    background-color: #229954;
+    transform: scale(1.15) rotate(90deg);
+    box-shadow: 0 6px 20px rgba(17, 153, 142, 0.6);
 }
 
-@media (max-width: 768px) {
-    .calendar-header {
-        flex-direction: column;
-        align-items: stretch;
+.day-events {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.event-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    padding: 8px 12px;
+    border-radius: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.event-type-0 {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+    border-left: 3px solid #667eea;
+}
+
+.event-type-1 {
+    background: linear-gradient(135deg, rgba(240, 147, 251, 0.15) 0%, rgba(245, 87, 108, 0.15) 100%);
+    border-left: 3px solid #f093fb;
+}
+
+.event-type-2 {
+    background: linear-gradient(135deg, rgba(17, 153, 142, 0.15) 0%, rgba(56, 239, 125, 0.15) 100%);
+    border-left: 3px solid #11998e;
+}
+
+.event-type-3 {
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.15) 0%, rgba(0, 242, 254, 0.15) 100%);
+    border-left: 3px solid #4facfe;
+}
+
+.event-item:hover {
+    transform: translateX(4px) scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.event-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.event-type-0 .event-indicator {
+    background: #667eea;
+    box-shadow: 0 0 8px rgba(102, 126, 234, 0.5);
+}
+
+.event-type-1 .event-indicator {
+    background: #f093fb;
+    box-shadow: 0 0 8px rgba(240, 147, 251, 0.5);
+}
+
+.event-type-2 .event-indicator {
+    background: #11998e;
+    box-shadow: 0 0 8px rgba(17, 153, 142, 0.5);
+}
+
+.event-type-3 .event-indicator {
+    background: #4facfe;
+    box-shadow: 0 0 8px rgba(79, 172, 254, 0.5);
+}
+
+.event-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.event-time {
+    color: #6b7280;
+    font-weight: 700;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+}
+
+.event-name {
+    color: #1a1a2e;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.more-events {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 600;
+    text-align: center;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.1) 0%, rgba(156, 163, 175, 0.1) 100%);
+    border-radius: 8px;
+    margin-top: 4px;
+    border: 1px solid rgba(107, 114, 128, 0.2);
+    transition: all 0.3s ease;
+}
+
+.more-events:hover {
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.2) 0%, rgba(156, 163, 175, 0.2) 100%);
+    transform: scale(1.02);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .calendar-container {
+        padding: 20px 15px;
     }
     
-    .calendar-navigation {
-        justify-content: center;
+    .main-title {
+        font-size: 2.4rem;
+    }
+    
+    .current-month {
+        font-size: 1.7rem;
+        min-width: 200px;
     }
     
     .calendar-days {
-        grid-auto-rows: 100px;
+        grid-auto-rows: 130px;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 25px;
+    }
+    
+    .calendar-navigation {
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    
+    .current-month {
+        order: -1;
+        margin-bottom: 10px;
+        font-size: 1.6rem;
+    }
+    
+    .calendar-days {
+        grid-auto-rows: 120px;
     }
     
     .weekday {
-        font-size: 12px;
-        padding: 10px 5px;
+        padding: 18px 8px;
+        font-size: 0.8rem;
     }
     
     .calendar-day {
-        padding: 5px;
-        font-size: 12px;
+        padding: 12px;
+        font-size: 0.85rem;
+    }
+    
+    .day-number {
+        font-size: 1.1rem;
+    }
+    
+    .event-item {
+        font-size: 0.75rem;
+        padding: 6px 10px;
     }
 }
+
+@media (max-width: 480px) {
+    .calendar-container {
+        padding: 15px 10px;
+    }
+    
+    .calendar-header {
+        padding: 25px 20px;
+        margin-bottom: 20px;
+    }
+    
+    .main-title {
+        font-size: 2rem;
+        gap: 12px;
+    }
+    
+    .calendar-icon {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .current-month {
+        font-size: 1.4rem;
+    }
+    
+    .nav-btn, .btn-primary {
+        padding: 12px 20px;
+        font-size: 0.9rem;
+    }
+    
+    .calendar-days {
+        grid-auto-rows: 110px;
+        gap: 1px;
+    }
+    
+    .weekday {
+        padding: 15px 6px;
+        font-size: 0.75rem;
+    }
+    
+    .calendar-day {
+        padding: 10px;
+        border-radius: 8px;
+    }
+    
+    .event-item {
+        padding: 5px 8px;
+        font-size: 0.7rem;
+        gap: 6px;
+    }
+    
+    .event-indicator {
+        width: 6px;
+        height: 6px;
+    }
+    
+    .add-btn {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .add-btn svg {
+        width: 12px;
+        height: 12px;
+    }
+}
+
+/* Animation Keyframes */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInFromLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.calendar-container {
+    animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.calendar-header {
+    animation: slideInFromLeft 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    animation-delay: 0.2s;
+    animation-fill-mode: backwards;
+}
+
+.calendar-wrapper {
+    animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    animation-delay: 0.4s;
+    animation-fill-mode: backwards;
+}
+
+.calendar-day {
+    animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    animation-delay: calc(var(--delay, 0) * 0.03s);
+    animation-fill-mode: backwards;
+}
+
+/* SVG Gradient Definitions */
+svg defs {
+    display: none;
+}
 </style>
+
+<svg style="position: absolute; width: 0; height: 0;">
+    <defs>
+        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#667eea"/>
+            <stop offset="50%" style="stop-color:#764ba2"/>
+            <stop offset="100%" style="stop-color:#f093fb"/>
+        </linearGradient>
+    </defs>
+</svg>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add stagger animation delay to calendar days
+    const calendarDays = document.querySelectorAll('.calendar-day:not(.empty)');
+    calendarDays.forEach((day, index) => {
+        day.style.setProperty('--delay', index);
+    });
+    
+    // Enhanced hover effects for event items
+    const eventItems = document.querySelectorAll('.event-item');
+    eventItems.forEach(item => {
+        item.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateX(6px) scale(1.03)';
+        });
+        
+        item.addEventListener('mouseleave', function() {
+            this.style.transform = '';
+        });
+    });
+    
+    // Add ripple effect to buttons
+    function createRipple(event) {
+        const button = event.currentTarget;
+        const circle = document.createElement('span');
+        const diameter = Math.max(button.clientWidth, button.clientHeight);
+        const radius = diameter / 2;
+        
+        circle.style.width = circle.style.height = `${diameter}px`;
+        circle.style.left = `${event.clientX - button.offsetLeft - radius}px`;
+        circle.style.top = `${event.clientY - button.offsetTop - radius}px`;
+        circle.classList.add('ripple');
+        
+        const ripple = button.getElementsByClassName('ripple')[0];
+        if (ripple) {
+            ripple.remove();
+        }
+        
+        button.appendChild(circle);
+    }
+    
+    // Apply ripple effect to buttons
+    const buttons = document.querySelectorAll('.nav-btn, .btn-primary, .add-btn');
+    buttons.forEach(button => {
+        button.addEventListener('click', createRipple);
+    });
+    
+    // Prevent event propagation for add buttons
+    const addBtns = document.querySelectorAll('.add-btn');
+    addBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+    
+    // Enhanced click handler for calendar days
+    const days = document.querySelectorAll('.calendar-day:not(.empty)');
+    days.forEach(day => {
+        day.addEventListener('click', function(e) {
+            if (e.target.closest('.add-btn') || e.target.closest('.day-number a') || e.target.closest('.event-item')) {
+                return;
+            }
+            
+            // Add a pulse effect
+            this.style.transform = 'scale(0.97)';
+            this.style.transition = 'transform 0.1s ease';
+            setTimeout(() => {
+                this.style.transform = '';
+                this.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            }, 100);
+        });
+    });
+    
+    // Add floating animation to circles
+    const circles = document.querySelectorAll('.floating-circle');
+    circles.forEach((circle, index) => {
+        const randomDelay = Math.random() * 2;
+        const randomDuration = 6 + Math.random() * 4;
+        circle.style.animationDelay = `${randomDelay}s`;
+        circle.style.animationDuration = `${randomDuration}s`;
+    });
+    
+    // Add glow effect to today's date
+    const today = document.querySelector('.calendar-day.today');
+    if (today) {
+        setInterval(() => {
+            today.style.boxShadow = `
+                0 8px 32px rgba(102, 126, 234, ${0.4 + Math.random() * 0.3}),
+                0 2px 8px rgba(0, 0, 0, 0.1)
+            `;
+        }, 2000);
+    }
+});
+
+// Add CSS for ripple effect
+const rippleStyle = document.createElement('style');
+rippleStyle.textContent = `
+    .ripple {
+        position: absolute;
+        border-radius: 50%;
+        transform: scale(0);
+        animation: ripple 0.6s linear;
+        background-color: rgba(255, 255, 255, 0.6);
+        pointer-events: none;
+    }
+    
+    @keyframes ripple {
+        to {
+            transform: scale(4);
+            opacity: 0;
+        }
+    }
+    
+    .nav-btn, .btn-primary, .add-btn {
+        position: relative;
+        overflow: hidden;
+    }
+`;
+document.head.appendChild(rippleStyle);
+</script>
 {% endblock %}

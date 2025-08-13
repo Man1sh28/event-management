@@ -57,21 +57,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3 mb-3">
-        <div class="card text-white bg-warning">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ stats.unique_schools }}</h4>
-                        <p class="card-text">Unique Schools</p>
-                    </div>
-                    <div>
-                        <i class="fas fa-school fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+
 </div>
 
 <!-- Charts Row -->
@@ -206,6 +192,9 @@
                     <a href="{{ url_for('export_data') }}?type=participants" class="btn btn-outline-success">
                         <i class="fas fa-download"></i> Export Participants
                     </a>
+                    <a href="{{ url_for('export_data') }}?type=teachers" class="btn btn-outline-warning">
+                        <i class="fas fa-download"></i> Export Teachers
+                    </a>
                     <a href="{{ url_for('export_data') }}?type=duties" class="btn btn-outline-info">
                         <i class="fas fa-download"></i> Export Duties
                     </a>
@@ -223,9 +212,9 @@ const eventsCtx = document.getElementById('eventsChart').getContext('2d');
 const eventsChart = new Chart(eventsCtx, {
     type: 'pie',
     data: {
-        labels: [{% for item in events_by_type %}'{{ item.type }}'{% if not loop.last %},{% endif %}{% else %}''{% endfor %}],
+        labels: [{% for item in events_by_type %}'{{ item.type }}'{% if not loop.last %},{% endif %}{% endfor %}],
         datasets: [{
-            data: [{% for item in events_by_type %}{{ item.count }}{% if not loop.last %},{% endif %}{% else %}0{% endfor %}],
+            data: [{% for item in events_by_type %}{{ item.count }}{% if not loop.last %},{% endif %}{% endfor %}],
             backgroundColor: [
                 '#FF6384',
                 '#36A2EB',
@@ -247,9 +236,9 @@ const participantsCtx = document.getElementById('participantsChart').getContext(
 const participantsChart = new Chart(participantsCtx, {
     type: 'doughnut',
     data: {
-        labels: [{% for item in participants_by_type %}'{{ item.type.title() }}'{% if not loop.last %},{% endif %}{% else %}''{% endfor %}],
+        labels: [{% for item in participants_by_type %}'{{ item.type.title() }}'{% if not loop.last %},{% endif %}{% endfor %}],
         datasets: [{
-            data: [{% for item in participants_by_type %}{{ item.count }}{% if not loop.last %},{% endif %}{% else %}0{% endfor %}],
+            data: [{% for item in participants_by_type %}{{ item.count }}{% if not loop.last %},{% endif %}{% endfor %}],
             backgroundColor: ['#36A2EB', '#FF6384']
         }]
     },
@@ -264,10 +253,10 @@ const dutiesCtx = document.getElementById('dutiesChart').getContext('2d');
 const dutiesChart = new Chart(dutiesCtx, {
     type: 'bar',
     data: {
-        labels: [{% for item in duties_by_type %}'{{ item.duty_type }}'{% if not loop.last %},{% endif %}{% else %}''{% endfor %}],
+        labels: [{% for item in duties_by_type %}'{{ item.duty_type }}'{% if not loop.last %},{% endif %}{% endfor %}],
         datasets: [{
             label: 'Duties',
-            data: [{% for item in duties_by_type %}{{ item.count }}{% if not loop.last %},{% endif %}{% else %}0{% endfor %}],
+            data: [{% for item in duties_by_type %}{{ item.count }}{% if not loop.last %},{% endif %}{% endfor %}],
             backgroundColor: '#4BC0C0'
         }]
     },
@@ -287,10 +276,10 @@ const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
 const monthlyChart = new Chart(monthlyCtx, {
     type: 'line',
     data: {
-        labels: [{% for item in monthly_events %}'{{ item.month }}'{% if not loop.last %},{% endif %}{% else %}''{% endfor %}],
+        labels: [{% for item in monthly_events %}'{{ item.month }}'{% if not loop.last %},{% endif %}{% endfor %}],
         datasets: [{
             label: 'Events',
-            data: [{% for item in monthly_events %}{{ item.count }}{% if not loop.last %},{% endif %}{% else %}0{% endfor %}],
+            data: [{% for item in monthly_events %}{{ item.count }}{% if not loop.last %},{% endif %}{% endfor %}],
             borderColor: '#FF9F40',
             backgroundColor: 'rgba(255, 159, 64, 0.2)',
             fill: true

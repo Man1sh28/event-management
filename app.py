@@ -428,15 +428,33 @@ def assign_duty():
         description = request.form['description']
         notes = request.form['notes']
         
-        participant_id = request.form['person_id']
+        # Parse time slot into start and end times
+        time_parts = time_slot.split(' - ')
+        start_time = time_parts[0].strip()
+        end_time = time_parts[1].strip() if len(time_parts) > 1 else start_time
+        
+        teacher_name = request.form['teacher_name'].strip()
         
         conn = get_db_connection()
+        
+        # Find or create teacher
+        teacher = conn.execute('SELECT id FROM participants WHERE name = ? AND type = "teacher"', 
+                             (teacher_name,)).fetchone()
+        
+        if teacher:
+            participant_id = teacher['id']
+        else:
+            # Create new teacher with minimal info
+            cursor = conn.execute('INSERT INTO participants (name, type, class_dept) VALUES (?, "teacher", "")',
+                                (teacher_name,))
+            participant_id = cursor.lastrowid
+        
         conn.execute('''
             INSERT INTO duties (event_id, participant_id, duty_type, 
-                              duty_date, time_slot, location, description, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                              duty_date, start_time, end_time, location, description, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (event_id, participant_id, duty_type, 
-              duty_date, time_slot, location, description, notes))
+              duty_date, start_time, end_time, location, description, notes))
         conn.commit()
         conn.close()
         
@@ -445,10 +463,9 @@ def assign_duty():
     
     conn = get_db_connection()
     events = conn.execute('SELECT id, name, event_date, venue FROM events ORDER BY event_date').fetchall()
-    participants = conn.execute('SELECT id, name, class_dept FROM participants ORDER BY name').fetchall()
     conn.close()
     
-    return render_template('add_duty.html', events=events, participants=participants)
+    return render_template('add_duty.html', events=events)
 
 # Alternative route name for backward compatibility
 @app.route('/duties/add', methods=['GET', 'POST'])
@@ -462,21 +479,39 @@ def edit_duty(id):
     
     if request.method == 'POST':
         event_id = request.form['event_id']
-        participant_id = request.form['person_id']
+        teacher_name = request.form['teacher_name'].strip()
         duty_type = request.form['duty_type']
         duty_date = request.form['duty_date']
-        start_time = request.form['start_time']
-        end_time = request.form['end_time']
+        time_slot = request.form['time_slot']
         location = request.form['location']
         description = request.form['description']
         notes = request.form['notes']
         
+        # Parse time slot into start and end times
+        time_parts = time_slot.split(' - ')
+        start_time = time_parts[0].strip()
+        end_time = time_parts[1].strip() if len(time_parts) > 1 else start_time
+        
+        conn = get_db_connection()
+        
+        # Find or create teacher
+        teacher = conn.execute('SELECT id FROM participants WHERE name = ? AND type = "teacher"', 
+                             (teacher_name,)).fetchone()
+        
+        if teacher:
+            participant_id = teacher['id']
+        else:
+            # Create new teacher with minimal info
+            cursor = conn.execute('INSERT INTO participants (name, type, class_dept) VALUES (?, "teacher", "")',
+                                (teacher_name,))
+            participant_id = cursor.lastrowid
+        
         conn.execute('''
             UPDATE duties SET event_id = ?, participant_id = ?, duty_type = ?,
-                           duty_date = ?, time_slot = ?, location = ?, 
+                           duty_date = ?, start_time = ?, end_time = ?, location = ?, 
                            description = ?, notes = ? WHERE id = ?
         ''', (event_id, participant_id, duty_type, duty_date, 
-              time_slot, location, description, notes, id))
+              start_time, end_time, location, description, notes, id))
         conn.commit()
         conn.close()
         
@@ -484,11 +519,9 @@ def edit_duty(id):
         return redirect(url_for('duties'))
     
     events = conn.execute('SELECT id, name, event_date, venue FROM events ORDER BY event_date').fetchall()
-    participants = conn.execute('SELECT id, name, class_dept FROM participants ORDER BY name').fetchall()
     conn.close()
     
-    return render_template('edit_duty.html', duty=duty, events=events, 
-                         participants=participants)
+    return render_template('edit_duty.html', duty=duty, events=events)
 
 @app.route('/duties/<int:id>/delete', methods=['POST'])
 def delete_duty(id):

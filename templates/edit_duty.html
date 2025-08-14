@@ -28,24 +28,22 @@
                 <form method="POST">
                     <div class="mb-3">
                         <label for="event_id" class="form-label">Event *</label>
-                        <select class="form-select" id="event_id" name="event_id" required>
+                        <select class="form-select" id="event_id" name="event_id" required onchange="updateEventDetails()">
                             {% for event in events %}
-                                <option value="{{ event.id }}" {% if event.id == duty.event_id %}selected{% endif %}>
-                                    {{ event.name }} - {{ event.date }}
+                                <option value="{{ event.id }}" {% if event.id == duty.event_id %}selected{% endif %}
+                                        data-date="{{ event.event_date }}" 
+                                        data-venue="{{ event.venue }}"
+                                        data-start="{{ event.start_time }}"
+                                        data-end="{{ event.end_time }}">
+                                    {{ event.name }} - {{ event.event_date }}
                                 </option>
                             {% endfor %}
                         </select>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="person_id" class="form-label">Assign To *</label>
-                        <select class="form-select" id="person_id" name="person_id" required>
-                            {% for participant in participants %}
-                                <option value="{{ participant.id }}" {% if participant.id == duty.participant_id %}selected{% endif %}>
-                                    {{ participant.name }} ({{ participant.class_dept }})
-                                </option>
-                            {% endfor %}
-                        </select>
+                        <label for="teacher_name" class="form-label">Teacher Name *</label>
+                        <input type="text" class="form-control" id="teacher_name" name="teacher_name" value="{{ duty.person_name }}" placeholder="Enter teacher's full name" required>
                     </div>
                     
                     <div class="mb-3">
@@ -116,4 +114,33 @@
         </div>
     </div>
 </div>
+
+<script>
+function updateEventDetails() {
+    const select = document.getElementById('event_id');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (selectedOption.value) {
+        // Populate time slot from event details
+        const startTime = selectedOption.dataset.start;
+        const endTime = selectedOption.dataset.end;
+        if (startTime && endTime) {
+            document.getElementById('time_slot').value = `${startTime} - ${endTime}`;
+        }
+    }
+}
+
+// Initialize time slot on page load if event is already selected
+window.addEventListener('load', function() {
+    const selectedEvent = document.getElementById('event_id');
+    if (selectedEvent.value) {
+        const selectedOption = selectedEvent.options[selectedEvent.selectedIndex];
+        const startTime = selectedOption.dataset.start;
+        const endTime = selectedOption.dataset.end;
+        if (startTime && endTime && !document.getElementById('time_slot').value) {
+            document.getElementById('time_slot').value = `${startTime} - ${endTime}`;
+        }
+    }
+});
+</script>
 {% endblock %}

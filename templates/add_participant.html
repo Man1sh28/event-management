@@ -31,10 +31,9 @@
                     
                     <div class="mb-3">
                         <label for="type" class="form-label">Participant Type *</label>
-                        <select class="form-select" id="type" name="type" required onchange="toggleFields()">
-                            <option value="">Select Type</option>
-                            <option value="student">Student</option>
-                            <option value="teacher">Teacher</option>
+                        <input type="hidden" name="type" value="student">
+                        <select class="form-select" id="type" name="type_display" disabled>
+                            <option value="student" selected>Student</option>
                         </select>
                     </div>
                     
@@ -45,28 +44,18 @@
                     
                     <input type="hidden" name="class_dept" id="class_dept" value="">
                     
-                    <div id="studentFields" style="display: none;">
-                        <div class="mb-3">
-                            <label for="grade" class="form-label">Grade</label>
-                            <select class="form-select" id="grade" name="grade" onchange="updateClassDept()">
-                                <option value="">Select Grade</option>
-                                <option value="6">Grade 6</option>
-                                <option value="7">Grade 7</option>
-                                <option value="8">Grade 8</option>
-                                <option value="9">Grade 9</option>
-                                <option value="10">Grade 10</option>
-                                <option value="11">Grade 11</option>
-                                <option value="12">Grade 12</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div id="teacherFields" style="display: none;">
-                        <div class="mb-3">
-                            <label for="designation" class="form-label">Designation</label>
-                            <input type="text" class="form-control" id="designation" name="designation" 
-                                   placeholder="e.g., Principal, Teacher, Coordinator" onchange="updateClassDept()">
-                        </div>
+                    <div class="mb-3">
+                        <label for="grade" class="form-label">Grade</label>
+                        <select class="form-select" id="grade" name="grade" onchange="updateClassDept()">
+                            <option value="">Select Grade</option>
+                            <option value="6">Grade 6</option>
+                            <option value="7">Grade 7</option>
+                            <option value="8">Grade 8</option>
+                            <option value="9">Grade 9</option>
+                            <option value="10">Grade 10</option>
+                            <option value="11">Grade 11</option>
+                            <option value="12">Grade 12</option>
+                        </select>
                     </div>
                     
                     <div class="mb-3">
@@ -109,8 +98,7 @@
                 <ul>
                     <li>Contact details (email and phone)</li>
                     <li>Emergency contact information</li>
-                    <li>Grade (for students)</li>
-                    <li>Designation (for teachers)</li>
+                    <li>Grade</li>
                 </ul>
                 
                 <div class="alert alert-info">
@@ -125,42 +113,12 @@
 </div>
 
 <script>
-function toggleFields() {
-    const type = document.getElementById('type').value;
-    const studentFields = document.getElementById('studentFields');
-    const teacherFields = document.getElementById('teacherFields');
-    
-    if (type === 'student') {
-        studentFields.style.display = 'block';
-        teacherFields.style.display = 'none';
-        document.getElementById('grade').required = true;
-        document.getElementById('designation').required = false;
-    } else if (type === 'teacher') {
-        studentFields.style.display = 'none';
-        teacherFields.style.display = 'block';
-        document.getElementById('grade').required = false;
-        document.getElementById('designation').required = true;
-    } else {
-        studentFields.style.display = 'none';
-        teacherFields.style.display = 'none';
-    }
-    updateClassDept();
-}
-
 function updateClassDept() {
-    const type = document.getElementById('type').value;
+    const grade = document.getElementById('grade').value;
     let classDept = '';
     
-    if (type === 'student') {
-        const grade = document.getElementById('grade').value;
-        if (grade) {
-            classDept = 'Grade ' + grade;
-        }
-    } else if (type === 'teacher') {
-        const designation = document.getElementById('designation').value;
-        if (designation) {
-            classDept = designation;
-        }
+    if (grade) {
+        classDept = 'Grade ' + grade;
     }
     
     document.getElementById('class_dept').value = classDept;

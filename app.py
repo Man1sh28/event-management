@@ -193,7 +193,7 @@ def dashboard():
     
     # Statistics
     total_events = conn.execute('SELECT COUNT(*) as count FROM events').fetchone()['count']
-    total_participants = conn.execute('SELECT COUNT(*) as count FROM participants').fetchone()['count']
+    total_participants = conn.execute('SELECT COUNT(*) as count FROM participants WHERE type = "student"').fetchone()['count']
     total_teachers = conn.execute('SELECT COUNT(*) as count FROM participants WHERE type = "teacher"').fetchone()['count']
     total_duties = conn.execute('SELECT COUNT(*) as count FROM duties').fetchone()['count']
 
@@ -311,15 +311,10 @@ def delete_event(id):
 @app.route('/participants')
 def participants():
     conn = get_db_connection()
-    type_filter = request.args.get('type', 'all')
     search = request.args.get('search', '')
     
-    query = 'SELECT * FROM participants WHERE 1=1'
+    query = 'SELECT * FROM participants WHERE type = "student"'
     params = []
-    
-    if type_filter != 'all':
-        query += ' AND type = ?'
-        params.append(type_filter)
     
     if search:
         query += ' AND (name LIKE ? OR class_dept LIKE ?)'
@@ -328,7 +323,7 @@ def participants():
     participants = conn.execute(query, params).fetchall()
     conn.close()
     
-    return render_template('participants.html', participants=participants, type_filter=type_filter, search=search)
+    return render_template('participants.html', participants=participants, search=search)
 
 @app.route('/participants/add', methods=['GET', 'POST'])
 def add_participant():
@@ -336,11 +331,15 @@ def add_participant():
         name = request.form['name']
         participant_type = request.form['type']
         school = request.form['school']
+        grade = request.form.get('grade', '')
         contact = request.form['contact']
         emergency_contact = request.form['emergency_contact']
         
-        # Use school as class_dept since they're equivalent
-        class_dept = school
+        # Combine school and grade for class_dept
+        if grade:
+            class_dept = f"Grade {grade}"
+        else:
+            class_dept = school
         
         conn = get_db_connection()
         conn.execute('''
@@ -364,11 +363,15 @@ def edit_participant(id):
         name = request.form['name']
         participant_type = request.form['type']
         school = request.form['school']
+        grade = request.form.get('grade', '')
         contact = request.form['contact']
         emergency_contact = request.form['emergency_contact']
         
-        # Use school as class_dept since they're equivalent
-        class_dept = school
+        # Combine school and grade for class_dept
+        if grade:
+            class_dept = f"Grade {grade}"
+        else:
+            class_dept = school
         
         conn.execute('''
             UPDATE participants SET name = ?, type = ?, class_dept = ?, 
@@ -410,7 +413,7 @@ def duties():
     ''').fetchall()
     
     events = conn.execute('SELECT id, name, event_date FROM events ORDER BY event_date').fetchall()
-    participants = conn.execute('SELECT id, name, class_dept FROM participants ORDER BY name').fetchall()
+    participants = conn.execute('SELECT id, name, class_dept FROM participants WHERE type = "student" ORDER BY name').fetchall()
     
     conn.close()
     
@@ -519,9 +522,10 @@ def edit_duty(id):
         return redirect(url_for('duties'))
     
     events = conn.execute('SELECT id, name, event_date, venue FROM events ORDER BY event_date').fetchall()
+    participants = conn.execute('SELECT id, name, class_dept FROM participants WHERE type = "student" ORDER BY name').fetchall()
     conn.close()
     
-    return render_template('edit_duty.html', duty=duty, events=events)
+    return render_template('edit_duty.html', duty=duty, events=events, participants=participants)
 
 @app.route('/duties/<int:id>/delete', methods=['POST'])
 def delete_duty(id):

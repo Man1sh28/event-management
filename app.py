@@ -642,31 +642,90 @@ def reports():
 
 @app.route('/export')
 def export_data():
+    import csv
+    import io
+    
     export_type = request.args.get('type', 'events')
     conn = get_db_connection()
     
-    if export_type == 'events':
-        data = conn.execute('SELECT * FROM events ORDER BY event_date DESC').fetchall()
-    elif export_type == 'participants':
-        data = conn.execute('SELECT * FROM participants ORDER BY name').fetchall()
-    elif export_type == 'teachers':
-        data = conn.execute('SELECT * FROM participants WHERE type = "teacher" ORDER BY class_dept, name').fetchall()
-    elif export_type == 'duties':
-        data = conn.execute('''
-            SELECT d.*, e.name as event_name, 
-                   COALESCE(p.name, v.name) as person_name,
-                   CASE WHEN d.participant_id IS NOT NULL THEN 'Participant' ELSE 'Volunteer' END as person_type
-            FROM duties d
-            JOIN events e ON d.event_id = e.id
-            LEFT JOIN participants p ON d.participant_id = p.id
-            LEFT JOIN volunteers v ON d.volunteer_id = v.id
-            ORDER BY d.assigned_at DESC
-        ''').fetchall()
-    else:
-        return jsonify({'error': 'Invalid export type'}), 400
+    # Create a string buffer to hold CSV data
+    output = io.StringIO()
+    
+    try:
+        if export_type == 'events':
+            data = conn.execute('SELECT * FROM events ORDER BY event_date DESC').fetchall()
+            if data:
+                # Use actual column names from the first row
+                headers = list(dict(data[0]).keys())
+                writer = csv.DictWriter(output, fieldnames=headers)
+                writer.writeheader()
+                for row in data:
+                    writer.writerow(dict(row))
+            filename = 'events.csv'
+            
+        elif export_type == 'participants':
+            data = conn.execute('SELECT * FROM participants ORDER BY name').fetchall()
+            if data:
+                headers = list(dict(data[0]).keys())
+                writer = csv.DictWriter(output, fieldnames=headers)
+                writer.writeheader()
+                for row in data:
+                    writer.writerow(dict(row))
+            filename = 'participants.csv'
+            
+        elif export_type == 'teachers':
+            data = conn.execute('SELECT * FROM participants WHERE type = "teacher" ORDER BY class_dept, name').fetchall()
+            if data:
+                headers = list(dict(data[0]).keys())
+                writer = csv.DictWriter(output, fieldnames=headers)
+                writer.writeheader()
+                for row in data:
+                    writer.writerow(dict(row))
+            filename = 'teachers.csv'
+            
+        elif export_type == 'duties':
+            data = conn.execute('''
+                SELECT d.id, d.duty_type, d.duty_date, d.start_time, d.end_time, 
+                       d.location, d.description, d.notes, d.status, d.assigned_at,
+                       e.name as event_name, e.event_date as event_date,
+                       dp.name as person_name, dp.designation, dp.school
+                FROM duties d
+                JOIN events e ON d.event_id = e.id
+                JOIN duty_personnel dp ON d.duty_person_id = dp.id
+                ORDER BY d.duty_date DESC
+            ''').fetchall()
+            if data:
+                headers = list(dict(data[0]).keys())
+                writer = csv.DictWriter(output, fieldnames=headers)
+                writer.writeheader()
+                for row in data:
+                    writer.writerow(dict(row))
+            filename = 'duties.csv'
+        else:
+            return jsonify({'error': 'Invalid export type'}), 400
+        
+        # Get CSV content and prepare response
+        csv_content = output.getvalue()
+        output.close()
+        
+        # Create response with proper headers for file download
+        response = app.response_class(
+            csv_content,
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': f'attachment; filename={filename}',
+                'Content-Type': 'text/csv'
+            }
+        )
+        
+        return response
+        
+    except Exception as e:
+        conn.close()
+        output.close()
+        return jsonify({'error': str(e)}), 500
     
     conn.close()
-    return jsonify([dict(row) for row in data])
 
 if __name__ == '__main__':
     init_db()

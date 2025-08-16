@@ -31,26 +31,39 @@ def init_db():
         )
     ''')
     
-    # Participants table (for teachers/non-students)
+    # Participants table (for students only)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS participants (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            type TEXT NOT NULL CHECK (type IN ('teacher')),
+            type TEXT NOT NULL CHECK (type IN ('student')),
             class_dept TEXT NOT NULL,
+            school TEXT NOT NULL,
+            grade TEXT,
             contact TEXT,
             emergency_contact TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
+
+    # Duty Personnel table (for teachers/staff assigned to duties)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS duty_personnel (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            designation TEXT,
+            school TEXT,
+            contact TEXT,
+            email TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
    
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS duties (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             event_id INTEGER NOT NULL,
-            participant_id INTEGER,
-            volunteer_id INTEGER,
+            duty_person_id INTEGER NOT NULL,
             duty_type TEXT NOT NULL,
             duty_date DATE NOT NULL,
             start_time TIME NOT NULL,
@@ -60,10 +73,7 @@ def init_db():
             notes TEXT,
             assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
-            FOREIGN KEY (participant_id) REFERENCES participants (id) ON DELETE CASCADE,
-            FOREIGN KEY (volunteer_id) REFERENCES volunteers (id) ON DELETE CASCADE,
-            CHECK ((participant_id IS NOT NULL AND volunteer_id IS NULL) OR 
-                   (participant_id IS NULL AND volunteer_id IS NOT NULL))
+            FOREIGN KEY (duty_person_id) REFERENCES duty_personnel (id) ON DELETE CASCADE
         )
     ''')
     
@@ -194,7 +204,7 @@ def dashboard():
     # Statistics
     total_events = conn.execute('SELECT COUNT(*) as count FROM events').fetchone()['count']
     total_participants = conn.execute('SELECT COUNT(*) as count FROM participants WHERE type = "student"').fetchone()['count']
-    total_teachers = conn.execute('SELECT COUNT(*) as count FROM participants WHERE type = "teacher"').fetchone()['count']
+    total_duty_personnel = conn.execute('SELECT COUNT(*) as count FROM duty_personnel').fetchone()['count']
     total_duties = conn.execute('SELECT COUNT(*) as count FROM duties').fetchone()['count']
 
     # Upcoming events
@@ -210,7 +220,7 @@ def dashboard():
     return render_template('dashboard.html', 
                          total_events=total_events,
                          total_participants=total_participants,
-                         total_teachers=total_teachers,
+                         total_duty_personnel=total_duty_personnel,
                          total_duties=total_duties,
                          upcoming_events=upcoming_events)
 
@@ -405,20 +415,20 @@ def duties():
     
     duties = conn.execute('''
         SELECT d.*, e.name as event_name, e.event_date as event_date,
-               p.name as person_name, 'Participant' as person_type
+               dp.name as person_name, dp.designation, dp.school
         FROM duties d
         JOIN events e ON d.event_id = e.id
-        JOIN participants p ON d.participant_id = p.id
+        JOIN duty_personnel dp ON d.duty_person_id = dp.id
         ORDER BY e.event_date
     ''').fetchall()
     
     events = conn.execute('SELECT id, name, event_date FROM events ORDER BY event_date').fetchall()
-    participants = conn.execute('SELECT id, name, class_dept FROM participants WHERE type = "student" ORDER BY name').fetchall()
+    duty_personnel = conn.execute('SELECT id, name, designation FROM duty_personnel ORDER BY name').fetchall()
     
     conn.close()
     
     return render_template('duties.html', duties=duties, events=events, 
-                         participants=participants)
+                         duty_personnel=duty_personnel)
 
 @app.route('/duties/assign', methods=['GET', 'POST'])
 def assign_duty():
@@ -436,27 +446,27 @@ def assign_duty():
         start_time = time_parts[0].strip()
         end_time = time_parts[1].strip() if len(time_parts) > 1 else start_time
         
-        teacher_name = request.form['teacher_name'].strip()
+        person_name = request.form['teacher_name'].strip()
         
         conn = get_db_connection()
         
-        # Find or create teacher
-        teacher = conn.execute('SELECT id FROM participants WHERE name = ? AND type = "teacher"', 
-                             (teacher_name,)).fetchone()
+        # Find or create duty personnel
+        person = conn.execute('SELECT id FROM duty_personnel WHERE name = ?', 
+                             (person_name,)).fetchone()
         
-        if teacher:
-            participant_id = teacher['id']
+        if person:
+            duty_person_id = person['id']
         else:
-            # Create new teacher with minimal info
-            cursor = conn.execute('INSERT INTO participants (name, type, class_dept) VALUES (?, "teacher", "")',
-                                (teacher_name,))
-            participant_id = cursor.lastrowid
+            # Create new duty personnel with minimal info
+            cursor = conn.execute('INSERT INTO duty_personnel (name, designation, school) VALUES (?, "", "")',
+                                (person_name,))
+            duty_person_id = cursor.lastrowid
         
         conn.execute('''
-            INSERT INTO duties (event_id, participant_id, duty_type, 
+            INSERT INTO duties (event_id, duty_person_id, duty_type, 
                               duty_date, start_time, end_time, location, description, notes)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (event_id, participant_id, duty_type, 
+        ''', (event_id, duty_person_id, duty_type, 
               duty_date, start_time, end_time, location, description, notes))
         conn.commit()
         conn.close()
@@ -482,7 +492,7 @@ def edit_duty(id):
     
     if request.method == 'POST':
         event_id = request.form['event_id']
-        teacher_name = request.form['teacher_name'].strip()
+        person_name = request.form['teacher_name'].strip()
         duty_type = request.form['duty_type']
         duty_date = request.form['duty_date']
         time_slot = request.form['time_slot']
@@ -497,23 +507,23 @@ def edit_duty(id):
         
         conn = get_db_connection()
         
-        # Find or create teacher
-        teacher = conn.execute('SELECT id FROM participants WHERE name = ? AND type = "teacher"', 
-                             (teacher_name,)).fetchone()
+        # Find or create duty personnel
+        person = conn.execute('SELECT id FROM duty_personnel WHERE name = ?', 
+                             (person_name,)).fetchone()
         
-        if teacher:
-            participant_id = teacher['id']
+        if person:
+            duty_person_id = person['id']
         else:
-            # Create new teacher with minimal info
-            cursor = conn.execute('INSERT INTO participants (name, type, class_dept) VALUES (?, "teacher", "")',
-                                (teacher_name,))
-            participant_id = cursor.lastrowid
+            # Create new duty personnel with minimal info
+            cursor = conn.execute('INSERT INTO duty_personnel (name, designation, school) VALUES (?, "", "")',
+                                (person_name,))
+            duty_person_id = cursor.lastrowid
         
         conn.execute('''
-            UPDATE duties SET event_id = ?, participant_id = ?, duty_type = ?,
+            UPDATE duties SET event_id = ?, duty_person_id = ?, duty_type = ?,
                            duty_date = ?, start_time = ?, end_time = ?, location = ?, 
                            description = ?, notes = ? WHERE id = ?
-        ''', (event_id, participant_id, duty_type, duty_date, 
+        ''', (event_id, duty_person_id, duty_type, duty_date, 
               start_time, end_time, location, description, notes, id))
         conn.commit()
         conn.close()
@@ -522,10 +532,10 @@ def edit_duty(id):
         return redirect(url_for('duties'))
     
     events = conn.execute('SELECT id, name, event_date, venue FROM events ORDER BY event_date').fetchall()
-    participants = conn.execute('SELECT id, name, class_dept FROM participants WHERE type = "student" ORDER BY name').fetchall()
+    duty_personnel = conn.execute('SELECT id, name, designation FROM duty_personnel ORDER BY name').fetchall()
     conn.close()
     
-    return render_template('edit_duty.html', duty=duty, events=events, participants=participants)
+    return render_template('edit_duty.html', duty=duty, events=events, duty_personnel=duty_personnel)
 
 @app.route('/duties/<int:id>/delete', methods=['POST'])
 def delete_duty(id):

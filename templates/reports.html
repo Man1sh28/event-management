@@ -27,11 +27,124 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            color: var(--apple-dark-gray);
-            line-height: 1.6;
-            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.47059;
+            font-weight: 400;
+            letter-spacing: -.022em;
+            padding-top: 60px;
+        }
+
+        /* Apple Navigation Bar */
+        .apple-nav {
+            background: rgba(251, 251, 253, 0.94);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: 60px;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+            text-decoration: none;
+        }
+
+        .nav-brand i {
+            font-size: 24px;
+            color: #007aff;
+            margin-right: 12px;
+        }
+
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #1d1d1f;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+        }
+
+        .nav-link i {
+            font-size: 16px;
+            margin-right: 8px;
+            opacity: 0.8;
+        }
+
+        .nav-link:hover {
+            background: rgba(0, 0, 0, 0.04);
+            color: #007aff;
+            text-decoration: none;
+        }
+
+        .nav-link.active {
+            background: #007aff;
+            color: white;
+        }
+
+        .nav-link.active i {
+            opacity: 1;
+        }
+
+        .nav-user {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #f2f2f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .user-avatar:hover {
+            background: #e5e5ea;
+        }
+
+        .user-avatar i {
+            font-size: 20px;
+            color: #007aff;
+        }
+
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
         }
 
         .container {
@@ -42,28 +155,37 @@
 
         /* Header */
         .header {
-            padding: 40px 0;
-            text-align: center;
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: var(--backdrop-blur);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            margin-bottom: 40px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 60px 0 40px;
+            margin-bottom: 60px;
+            position: sticky;
+            top: 60px;
+            z-index: 100;
         }
 
         .header h1 {
-            font-size: 3rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--apple-blue), var(--apple-purple));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 10px;
-            letter-spacing: -0.02em;
+            font-size: 48px;
+            font-weight: 600;
+            letter-spacing: -.003em;
+            margin-bottom: 12px;
+            color: #1d1d1f;
+            display: flex;
+            align-items: center;
+        }
+
+        .header h1 i {
+            margin-right: 16px;
+            color: #007aff;
         }
 
         .header p {
-            font-size: 1.2rem;
-            color: var(--apple-gray);
+            font-size: 21px;
             font-weight: 400;
+            color: #86868b;
+            letter-spacing: .011em;
         }
 
         /* Stats Cards */
@@ -406,6 +528,49 @@
     </style>
 </head>
 <body>
+    
+
+     <!-- Navigation Bar -->
+    <nav class="apple-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-graduation-cap"></i>
+                <span>SchoolEvents</span>
+            </div>
+            <div class="nav-menu">
+                <a href="{{ url_for('dashboard') }}" class="nav-link ">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('calendar_view') }}" class="nav-link">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Calendar</span>
+                </a>
+                <a href="{{ url_for('events') }}" class="nav-link">
+                    <i class="fas fa-calendar"></i>
+                    <span>Events</span>
+                </a>
+                <a href="{{ url_for('participants') }}" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    <span>Students</span>
+                </a>
+                <a href="{{ url_for('duties') }}" class="nav-link">
+                    <i class="fas fa-tasks"></i>
+                    <span>Duties</span>
+                </a>
+                <a href="{{ url_for('reports') }}" class="nav-link active">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Reports</span>
+                </a>
+            </div>
+            <div class="nav-user">
+                <div class="user-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+            </div>
+        </div>
+    </nav>
+
     <div class="header">
         <div class="container">
             <h1>Reports & Analytics</h1>
@@ -721,6 +886,12 @@
                 }
             }
         });
+
+        // Add FontAwesome CDN
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
+        document.head.appendChild(link);
     </script>
 </body>
 </html>

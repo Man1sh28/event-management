@@ -16,7 +16,6 @@ A comprehensive web-based portal for managing interschool events, tracking parti
 - Events by type visualization
 - Participant distribution charts
 - Upcoming events timeline
-- Top participating schools ranking
 
 ### 🔍 Advanced Features
 - **Search & Filter**: Advanced filtering for events, participants, and duties
@@ -183,37 +182,37 @@ The system uses SQLite with the following tables:
 
 ## File Structure
 
-project-folder/
-│── __pycache__/
-│   └── app.cpython-313.pyc
-│
-│── static/
-│   ├── css/
-│   │   └── style.css
-│   └── js/
-│
-│── templates/
-│   ├── add_calendar_event.html
-│   ├── add_duty.html
-│   ├── add_event.html
-│   ├── add_participant.html
-│   ├── base.html
-│   ├── calendar.html
-│   ├── dashboard.html
-│   ├── day_events.html
-│   ├── duties.html
-│   ├── edit_duty.html
-│   ├── edit_event.html
-│   ├── edit_participant.html
-│   ├── events.html
-│   ├── participants.html
-│   └── reports.html
-│
-│── app.py
-│── events.db
-│── index.html
-│── README.md
-│── Untitled-1.py
+            project-folder/
+            │── __pycache__/
+            │   └── app.cpython-313.pyc
+            │
+            │── static/
+            │   ├── css/
+            │   │   └── style.css
+            │   └── js/
+            │
+            │── templates/
+            │   ├── add_calendar_event.html
+            │   ├── add_duty.html
+            │   ├── add_event.html
+            │   ├── add_participant.html
+            │   ├── base.html
+            │   ├── calendar.html
+            │   ├── dashboard.html
+            │   ├── day_events.html
+            │   ├── duties.html
+            │   ├── edit_duty.html
+            │   ├── edit_event.html
+            │   ├── edit_participant.html
+            │   ├── events.html
+            │   ├── participants.html
+            │   └── reports.html
+            │
+            │── app.py
+            │── events.db
+            │── index.html
+            │── README.md
+            │── Untitled-1.py
 
 
 ## Customization

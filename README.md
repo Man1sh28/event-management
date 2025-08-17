@@ -70,7 +70,7 @@ The system uses SQLite with the following tables:
 - `start_time`, `end_time`: Event duration
 - `venue`: Event location
 - `host_school`: School hosting the event
-- `participating_schools`: Comma-separated list of participating schools
+- `participating_schools`: Comma-separated list of participating schools (for sport tournaments)
 - `description`: Event description
 
 ### Participants Table
@@ -183,27 +183,38 @@ The system uses SQLite with the following tables:
 
 ## File Structure
 
-```
-school-event-management/
-├── app.py                 # Main Flask application
-├── init_db.py            # Database initialization script
-├── templates/            # HTML templates
-│   ├── base.html         # Base template with navigation
-│   ├── dashboard.html    # Dashboard overview
-│   ├── events.html       # Events listing
-│   ├── add_event.html    # Add event form
-│   ├── participants.html # Participants listing
-│   ├── add_participant.html # Add participant form
-│   ├── duties.html       # Duties listing
-│   ├── add_duty.html     # Assign duty form
-│   └── reports.html      # Analytics and reports
-├── static/               # Static files
+project-folder/
+│── __pycache__/
+│   └── app.cpython-313.pyc
+│
+│── static/
 │   ├── css/
-│   │   └── style.css     # Custom styles
+│   │   └── style.css
 │   └── js/
-│       └── app.js        # JavaScript functionality
-└── README.md            # This documentation
-```
+│
+│── templates/
+│   ├── add_calendar_event.html
+│   ├── add_duty.html
+│   ├── add_event.html
+│   ├── add_participant.html
+│   ├── base.html
+│   ├── calendar.html
+│   ├── dashboard.html
+│   ├── day_events.html
+│   ├── duties.html
+│   ├── edit_duty.html
+│   ├── edit_event.html
+│   ├── edit_participant.html
+│   ├── events.html
+│   ├── participants.html
+│   └── reports.html
+│
+│── app.py
+│── events.db
+│── index.html
+│── README.md
+│── Untitled-1.py
+
 
 ## Customization
 
@@ -219,7 +230,7 @@ Modify `static/css/style.css` to customize the appearance.
 ## Troubleshooting
 
 ### Common Issues
-1. **Port 8000 in use**: Change the port in `app.py`
+1. **Port 8001 in use**: Change the port in `app.py`
 2. **Database errors**: Delete `school_events.db` and restart the app
 3. **Missing dependencies**: Run `pip install flask`
 4. **Permission errors**: Ensure proper file permissions
@@ -245,4 +256,4 @@ This project is open-source and available for educational and commercial use.
 
 **Happy Event Management!** 🎉
 
-The system is now ready to use. Access it at `http://localhost:8000` in your web browser.
+The system is now ready to use. Access it at `http://localhost:8001` in your web browser.

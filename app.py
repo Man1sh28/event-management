@@ -189,7 +189,7 @@ def add_calendar_event():
         
         return redirect(url_for('calendar_view', year=year, month=month))
     
-    # Pre-fill date if provided
+    
     year = request.args.get('year', datetime.now().year)
     month = request.args.get('month', datetime.now().month)
     day = request.args.get('day', datetime.now().day)
@@ -201,7 +201,7 @@ def add_calendar_event():
 def dashboard():
     conn = get_db_connection()
     
-    # Statistics
+    
     total_events = conn.execute('SELECT COUNT(*) as count FROM events').fetchone()['count']
     total_participants = conn.execute('SELECT COUNT(*) as count FROM participants WHERE type = "student"').fetchone()['count']
     total_duty_personnel = conn.execute('SELECT COUNT(*) as count FROM duty_personnel').fetchone()['count']

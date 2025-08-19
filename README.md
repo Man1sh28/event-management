@@ -1,4 +1,4 @@
-# School Event Management System
+# EvenZa
 
 A comprehensive web-based portal for managing interschool events, tracking participants (students and teachers), and assigning duties. Built with Python Flask, SQLite, HTML, CSS, and JavaScript.
 

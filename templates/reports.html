@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports & Analytics - School Event Management</title>
+    <title>Reports & Analytics - EvenZa</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * {
@@ -36,7 +36,7 @@
             padding-top: 60px;
         }
 
-        /* Apple Navigation Bar */
+
         .apple-nav {
             background: rgba(251, 251, 253, 0.94);
             backdrop-filter: saturate(180%) blur(20px);
@@ -153,7 +153,7 @@
             padding: 0 20px;
         }
 
-        /* Header */
+
         .header {
             background: rgba(255, 255, 255, 0.8);
             backdrop-filter: saturate(180%) blur(20px);
@@ -188,7 +188,7 @@
             letter-spacing: .011em;
         }
 
-        /* Stats Cards */
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -270,7 +270,7 @@
             opacity: 0.6;
         }
 
-        /* Charts Grid */
+
         .charts-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
@@ -311,7 +311,7 @@
             height: 300px;
         }
 
-        /* Tables */
+
         .tables-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -388,7 +388,7 @@
             background: linear-gradient(135deg, var(--apple-green), #30D158);
         }
 
-        /* Export Section */
+
         .export-section {
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: var(--backdrop-blur);
@@ -530,12 +530,12 @@
 <body>
     
 
-     <!-- Navigation Bar -->
+ 
     <nav class="apple-nav">
         <div class="nav-container">
             <div class="nav-brand">
                 <i class="fas fa-graduation-cap"></i>
-                <span>SchoolEvents</span>
+                <span>EvenZa</span>
             </div>
             <div class="nav-menu">
                 <a href="{{ url_for('dashboard') }}" class="nav-link ">
@@ -579,7 +579,7 @@
     </div>
 
     <div class="container">
-        <!-- Statistics Cards -->
+    
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-icon">📅</div>
@@ -598,7 +598,7 @@
             </div>
         </div>
 
-        <!-- Charts Grid -->
+    
         <div class="charts-grid">
             <div class="chart-card">
                 <div class="chart-header">
@@ -634,7 +634,7 @@
             </div>
         </div>
 
-        <!-- Tables Grid -->
+    
         <div class="tables-grid">
             <div class="table-card">
                 <div class="table-header">
@@ -702,7 +702,7 @@
             </div>
         </div>
 
-        <!-- Export Section -->
+    
         <div class="export-section">
             <h3 class="export-title">Export Data</h3>
             <div class="export-buttons">
@@ -742,7 +742,7 @@
 
         // Events by Type Chart
         const eventsCtx = document.getElementById('eventsChart').getContext('2d');
-        const eventsChart = new Chart(eventsCtx, {
+        new Chart(eventsCtx, {
             type: 'doughnut',
             data: {
                 labels: [{% for item in events_by_type %}'{{ item.type }}'{% if not loop.last %},{% endif %}{% endfor %}],
@@ -778,7 +778,7 @@
 
         // Participants by Type Chart
         const participantsCtx = document.getElementById('participantsChart').getContext('2d');
-        const participantsChart = new Chart(participantsCtx, {
+        new Chart(participantsCtx, {
             type: 'doughnut',
             data: {
                 labels: [{% for item in participants_by_type %}'{{ item.type.title() }}'{% if not loop.last %},{% endif %}{% endfor %}],
@@ -807,7 +807,7 @@
 
         // Duties by Type Chart
         const dutiesCtx = document.getElementById('dutiesChart').getContext('2d');
-        const dutiesChart = new Chart(dutiesCtx, {
+        new Chart(dutiesCtx, {
             type: 'bar',
             data: {
                 labels: [{% for item in duties_by_type %}'{{ item.duty_type }}'{% if not loop.last %},{% endif %}{% endfor %}],
@@ -845,7 +845,7 @@
 
         // Monthly Events Chart
         const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
-        const monthlyChart = new Chart(monthlyCtx, {
+        new Chart(monthlyCtx, {
             type: 'line',
             data: {
                 labels: [{% for item in monthly_events %}'{{ item.month }}'{% if not loop.last %},{% endif %}{% endfor %}],

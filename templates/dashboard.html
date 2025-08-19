@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - School Event Management</title>
+    <title>Dashboard - EvenZa</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
@@ -453,10 +453,26 @@
         .fade-in:nth-child(3) { animation-delay: 0.3s; }
         .fade-in:nth-child(4) { animation-delay: 0.4s; }
 
+        /* Danger Zone */
+        .danger-zone {
+            margin-top: 60px;
+            padding: 40px;
+            background: rgba(255, 59, 48, 0.05);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 59, 48, 0.1);
+        }
+
+        .danger-zone h2 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: #ff3b30;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .main-header {
-                padding: 40px 0 30px;
+                padding: 120px 0 40px; /* Added top padding for nav */
                 margin-bottom: 40px;
             }
 
@@ -491,6 +507,11 @@
                 padding-left: 16px;
                 padding-right: 16px;
             }
+
+            .danger-zone {
+                padding: 24px;
+                margin-top: 40px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -509,11 +530,16 @@
             .stat-number {
                 font-size: 40px;
             }
+
+            .danger-zone {
+                padding: 20px;
+                margin-top: 30px;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Navigation Bar -->
+
     <nav class="apple-nav">
         <div class="nav-container">
             <div class="nav-brand">
@@ -641,8 +667,23 @@
                         <a href="{{ url_for('reports') }}" class="action-btn secondary">
                             <i class="fas fa-chart-bar"></i>View Reports
                         </a>
+                        <button class="action-btn" style="background: #ff3b30;" onclick="if(confirm('Are you sure you want to delete ALL data? This action cannot be undone.')) { alert('Delete all data functionality would be implemented here'); }">
+                            <i class="fas fa-trash-alt"></i>Delete All Data
+                        </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="container">
+        <div class="danger-zone">
+            <h2><i class="fas fa-exclamation-triangle"></i> Danger Zone</h2>
+            <div class="action-buttons">
+                <button class="action-btn" style="background: #ff3b30;" onclick="confirmDeleteAllData()">
+                    <i class="fas fa-trash-alt"></i>Delete All Data
+                </button>
             </div>
         </div>
     </div>
@@ -699,6 +740,40 @@
                 }, 600);
             });
         });
+
+        // Delete all data confirmation
+        function confirmDeleteAllData() {
+            const confirmation = confirm('⚠️ WARNING: This will permanently delete ALL data including:\n\n• All events\n• All participants\n• All duties and assignments\n• All calendar data\n\nThis action CANNOT be undone. Are you absolutely sure?');
+            
+            if (confirmation) {
+                const doubleConfirmation = prompt('Type "DELETE" to confirm permanent deletion of all data:');
+                
+                if (doubleConfirmation === 'DELETE') {
+                    // Make API call to delete all data
+                    fetch('/delete-all-data', { 
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('All data has been successfully deleted.');
+                            window.location.reload();
+                        } else {
+                            alert('Error deleting data: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while deleting data.');
+                    });
+                } else {
+                    alert('Deletion cancelled. Type "DELETE" exactly to confirm.');
+                }
+            }
+        }
 
         // CSS for ripple animation
         const style = document.createElement('style');

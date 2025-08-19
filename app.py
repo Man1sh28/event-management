@@ -8,12 +8,10 @@ import json
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'
 
-# Database setup
 def init_db():
     conn = sqlite3.connect('events.db')
     cursor = conn.cursor()
     
-    # Events table - Fixed column names
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,8 +28,6 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
-    # Participants table (for students only)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS participants (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,8 +41,6 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-
-    # Duty Personnel table (for teachers/staff assigned to duties)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS duty_personnel (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,7 +52,6 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-   
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS duties (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,33 +73,28 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Database helper functions
 def get_db_connection():
     conn = sqlite3.connect('events.db')
     conn.row_factory = sqlite3.Row
     return conn
 
-# Calendar helper functions
 def get_calendar_data(year, month):
-    """Get calendar data for a given month"""
     cal = calendar.monthcalendar(year, month)
     month_name = calendar.month_name[month]
     
-    # Get events for this month
     conn = get_db_connection()
     start_date = date(year, month, 1)
     last_day = calendar.monthrange(year, month)[1]
     end_date = date(year, month, last_day)
-    
+
     events = conn.execute('''
         SELECT * FROM events 
         WHERE event_date >= ? AND event_date <= ?
         ORDER BY event_date, start_time
     ''', (start_date, end_date)).fetchall()
-    
+
     conn.close()
     
-    # Group events by date
     events_by_date = {}
     for event in events:
         event_date = event['event_date']
@@ -131,7 +119,6 @@ def get_calendar_data(year, month):
 # Routes
 @app.route('/calendar')
 def calendar_view():
-    """Display calendar view"""
     year = int(request.args.get('year', datetime.now().year))
     month = int(request.args.get('month', datetime.now().month))
     
@@ -140,7 +127,6 @@ def calendar_view():
 
 @app.route('/calendar/<int:year>/<int:month>/<int:day>')
 def day_events(year, month, day):
-    """Display events for a specific day"""
     selected_date = date(year, month, day)
     
     conn = get_db_connection()
@@ -158,7 +144,6 @@ def day_events(year, month, day):
 
 @app.route('/calendar/add_event', methods=['GET', 'POST'])
 def add_calendar_event():
-    """Add event from calendar view"""
     if request.method == 'POST':
         name = request.form['name']
         event_type = request.form['type']
@@ -182,11 +167,10 @@ def add_calendar_event():
         
         flash('Event added successfully!', 'success')
         
-        # Redirect back to calendar or day view
         year = int(request.args.get('year', datetime.now().year))
         month = int(request.args.get('month', datetime.now().month))
         day = int(request.args.get('day', 1))
-        
+
         return redirect(url_for('calendar_view', year=year, month=month))
     
     
@@ -345,7 +329,7 @@ def add_participant():
         contact = request.form['contact']
         emergency_contact = request.form['emergency_contact']
         
-        # Combine school and grade for class_dept
+
         if grade:
             class_dept = f"Grade {grade}"
         else:
@@ -377,7 +361,7 @@ def edit_participant(id):
         contact = request.form['contact']
         emergency_contact = request.form['emergency_contact']
         
-        # Combine school and grade for class_dept
+
         if grade:
             class_dept = f"Grade {grade}"
         else:
@@ -441,7 +425,7 @@ def assign_duty():
         description = request.form['description']
         notes = request.form['notes']
         
-        # Parse time slot into start and end times
+
         time_parts = time_slot.split(' - ')
         start_time = time_parts[0].strip()
         end_time = time_parts[1].strip() if len(time_parts) > 1 else start_time
@@ -450,14 +434,14 @@ def assign_duty():
         
         conn = get_db_connection()
         
-        # Find or create duty personnel
+
         person = conn.execute('SELECT id FROM duty_personnel WHERE name = ?', 
                              (person_name,)).fetchone()
         
         if person:
             duty_person_id = person['id']
         else:
-            # Create new duty personnel with minimal info
+
             cursor = conn.execute('INSERT INTO duty_personnel (name, designation, school) VALUES (?, "", "")',
                                 (person_name,))
             duty_person_id = cursor.lastrowid
@@ -500,21 +484,21 @@ def edit_duty(id):
         description = request.form['description']
         notes = request.form['notes']
         
-        # Parse time slot into start and end times
+
         time_parts = time_slot.split(' - ')
         start_time = time_parts[0].strip()
         end_time = time_parts[1].strip() if len(time_parts) > 1 else start_time
         
         conn = get_db_connection()
         
-        # Find or create duty personnel
+
         person = conn.execute('SELECT id FROM duty_personnel WHERE name = ?', 
                              (person_name,)).fetchone()
         
         if person:
             duty_person_id = person['id']
         else:
-            # Create new duty personnel with minimal info
+
             cursor = conn.execute('INSERT INTO duty_personnel (name, designation, school) VALUES (?, "", "")',
                                 (person_name,))
             duty_person_id = cursor.lastrowid
@@ -583,14 +567,14 @@ def api_duties():
 def reports():
     conn = get_db_connection()
     
-    # Get statistics
+
     stats = {
         'total_events': conn.execute('SELECT COUNT(*) as count FROM events').fetchone()['count'],
         'total_participants': conn.execute('SELECT COUNT(*) as count FROM participants').fetchone()['count'],
         'total_duties': conn.execute('SELECT COUNT(*) as count FROM duties').fetchone()['count']
     }
     
-    # Get events by type for chart
+
     events_by_type = conn.execute('''
         SELECT type, COUNT(*) as count
         FROM events
@@ -599,7 +583,7 @@ def reports():
     events_by_type_labels = [row['type'] for row in events_by_type]
     events_by_type_data = [row['count'] for row in events_by_type]
     
-    # Get participants by type for chart
+
     participants_by_type = conn.execute('''
         SELECT type, COUNT(*) as count
         FROM participants
@@ -607,7 +591,7 @@ def reports():
     ''').fetchall()
     participants_by_type_data = [row['count'] for row in participants_by_type]
     
-    # Get events timeline for chart
+
     events_timeline = conn.execute('''
         SELECT event_date, COUNT(*) as count
         FROM events
@@ -726,6 +710,28 @@ def export_data():
         return jsonify({'error': str(e)}), 500
     
     conn.close()
+
+@app.route('/delete-all-data', methods=['POST'])
+def delete_all_data():
+    """Delete all data from the database"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Delete all data from tables in the correct order due to foreign key constraints
+        cursor.execute('DELETE FROM duties')
+        cursor.execute('DELETE FROM participants')
+        cursor.execute('DELETE FROM duty_personnel')
+        cursor.execute('DELETE FROM events')
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'All data has been successfully deleted.'})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     init_db()

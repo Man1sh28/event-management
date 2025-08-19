@@ -23,7 +23,91 @@
                 <h5 class="card-title mb-0">Event Details</h5>
             </div>
             <div class="card-body">
-                <form method="POST">
+                <form method="POST" id="eventForm">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Event Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Event Type *</label>
+                        <select class="form-select" id="type" name="type" required>
+                            <option value="">Select Type</option>
+                            <option value="sports">Sports</option>
+                            <option value="cultural">Cultural</option>
+                            <option value="academic">Academic</option>
+                            <option value="technical">Technical</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="event_date" class="form-label">Date *</label>
+                            <input type="date" class="form-control" id="event_date" name="event_date" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="start_time" class="form-label">Start Time *</label>
+                            <input type="time" class="form-control" id="start_time" name="start_time" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="end_time" class="form-label">End Time *</label>
+                            <input type="time" class="form-control" id="end_time" name="end_time" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="venue" class="form-label">Venue *</label>
+                        <input type="text" class="form-control" id="venue" name="venue" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="host_school" class="form-label">Host School *</label>
+                        <input type="text" class="form-control" id="host_school" name="host_school" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="participating_schools" class="form-label">Participating Schools</label>
+                        <input type="text" class="form-control" id="participating_schools" name="participating_schools" 
+                               placeholder="Enter schools separated by commas">
+                        <small class="form-text text-muted">Enter participating schools separated by commas</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('events') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Event
+                        </button>
+                    </div>
+                </form>
+                <script>
+                    document.getElementById('eventForm').addEventListener('submit', function(e) {
+                        const requiredFields = ['name', 'type', 'event_date', 'start_time', 'end_time', 'venue', 'host_school'];
+                        let isValid = true;
+                        
+                        requiredFields.forEach(field => {
+                            const input = document.getElementById(field);
+                            if (!input.value.trim()) {
+                                input.classList.add('is-invalid');
+                                isValid = false;
+                            } else {
+                                input.classList.remove('is-invalid');
+                            }
+                        });
+                        
+                        if (!isValid) {
+                            e.preventDefault();
+                            return false;
+                        }
+                    });
+                    
+                    document.getElementById('event_date').valueAsDate = new Date();
+                </script>
                     <div class="mb-3">
                         <label for="name" class="form-label">Event Name *</label>
                         <input type="text" class="form-control" id="name" name="name" required>

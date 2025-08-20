@@ -665,6 +665,7 @@
                             <table class="participants-table">
                                 <thead>
                                     <tr>
+                                        <th>Unique ID</th>
                                         <th>Name</th>
                                         <th>Department</th>
                                         <th>Contact</th>
@@ -675,6 +676,9 @@
                                 <tbody>
                                     {% for participant in participants %}
                                         <tr>
+                                            <td>
+                                                <div class="participant-unique-id">{{ participant.unique_id }}</div>
+                                            </td>
                                             <td>
                                                 <div class="participant-name">{{ participant.name }}</div>
                                             </td>

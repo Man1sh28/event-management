@@ -1,40 +1,32 @@
 {% extends "base.html" %}
 
-{% block title %}Assign Duty - EvenZa{% endblock %}
+{% block title %}Assign Duty - School Event Management{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div class="row align-items-center">
-        <div class="col">
-            <h1 class="page-title">
-                <i class="fas fa-tasks text-warning"></i>
-                Assign Duty
-            </h1>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb breadcrumb-chevron">
-                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ url_for('duties') }}">Duties</a></li>
-                    <li class="breadcrumb-item active">Assign Duty</li>
-                </ol>
-            </nav>
-        </div>
+<div class="row">
+    <div class="col-12">
+        <h1><i class="fas fa-tasks"></i> Assign Duty</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('duties') }}">Duties</a></li>
+                <li class="breadcrumb-item active">Assign Duty</li>
+            </ol>
+        </nav>
     </div>
 </div>
 
 <div class="row">
-    <div class="col-lg-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white border-bottom">
-                <h5 class="card-title mb-0 fw-semibold">
-                    <i class="fas fa-clipboard-list text-warning me-2"></i>
-                    Duty Assignment Details
-                </h5>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Duty Assignment Details</h5>
             </div>
-            <div class="card-body p-4">
-                <form method="POST" class="needs-validation" novalidate>
-                    <div class="mb-4">
-                        <label for="event_id" class="form-label fw-semibold">Event <span class="text-danger">*</span></label>
-                        <select class="form-select form-select-lg" id="event_id" name="event_id" required onchange="updateEventDetails()">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="event_id" class="form-label">Event *</label>
+                        <select class="form-select" id="event_id" name="event_id" required onchange="updateEventDetails()">
                             <option value="">Select Event</option>
                             {% for event in events %}
                                 <option value="{{ event.id }}" 
@@ -46,85 +38,59 @@
                                 </option>
                             {% endfor %}
                         </select>
-                        <div class="invalid-feedback">
-                            Please select an event.
-                        </div>
                     </div>
                     
-                    <div class="mb-4">
-                        <label for="teacher_name" class="form-label fw-semibold">Person Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-lg" id="teacher_name" name="teacher_name" 
-                               placeholder="Enter person's full name" required>
-                        <div class="invalid-feedback">
-                            Please provide the person's name.
-                        </div>
+                    <div class="mb-3">
+                        <label for="teacher_name" class="form-label">Person Name *</label>
+                        <input type="text" class="form-control" id="teacher_name" name="teacher_name" placeholder="Enter person's full name" required>
                     </div>
                     
-                    <div class="row">
-                        <div class="col-md-6 mb-4">
-                            <label for="duty_type" class="form-label fw-semibold">Duty Type <span class="text-danger">*</span></label>
-                            <select class="form-select form-select-lg" id="duty_type" name="duty_type" required>
-                                <option value="">Select Type</option>
-                                <option value="supervision">👁️ Supervision</option>
-                                <option value="coordination">🎯 Coordination</option>
-                                <option value="judging">⚖️ Judging</option>
-                                <option value="logistics">📦 Logistics</option>
-                                <option value="registration">📝 Registration</option>
-                                <option value="security">🛡️ Security</option>
-                                <option value="other">🌟 Other</option>
-                            </select>
-                            <div class="invalid-feedback">
-                                Please select a duty type.
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6 mb-4">
-                            <label for="duty_date" class="form-label fw-semibold">Duty Date <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control form-control-lg" id="duty_date" name="duty_date" required>
-                            <div class="invalid-feedback">
-                                Please select a duty date.
-                            </div>
-                        </div>
+                    <div class="mb-3">
+                        <label for="duty_type" class="form-label">Duty Type *</label>
+                        <select class="form-select" id="duty_type" name="duty_type" required>
+                            <option value="">Select Type</option>
+                            <option value="supervision">Supervision</option>
+                            <option value="coordination">Coordination</option>
+                            <option value="judging">Judging</option>
+                            <option value="logistics">Logistics</option>
+                            <option value="registration">Registration</option>
+                            <option value="security">Security</option>
+                            <option value="other">Other</option>
+                        </select>
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-6 mb-4">
-                            <label for="time_slot" class="form-label fw-semibold">Time Slot <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-lg" id="time_slot" name="time_slot" 
-                                   placeholder="e.g., 9:00 AM - 12:00 PM" required>
-                            <div class="invalid-feedback">
-                                Please provide a time slot.
-                            </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="duty_date" class="form-label">Duty Date *</label>
+                            <input type="date" class="form-control" id="duty_date" name="duty_date" required>
                         </div>
-                        
-                        <div class="col-md-6 mb-4">
-                            <label for="location" class="form-label fw-semibold">Location <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-lg" id="location" name="location" 
-                                   placeholder="Enter specific location" required>
-                            <div class="invalid-feedback">
-                                Please provide a location.
-                            </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="time_slot" class="form-label">Time Slot *</label>
+                            <input type="text" class="form-control" id="time_slot" name="time_slot" placeholder="e.g., 9:00 AM - 12:00 PM" required>
                         </div>
                     </div>
                     
-                    <div class="mb-4">
-                        <label for="description" class="form-label fw-semibold">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="4" 
-                                  placeholder="Describe the specific responsibilities, requirements, and expectations..."></textarea>
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Location *</label>
+                        <input type="text" class="form-control" id="location" name="location" required>
                     </div>
                     
-                    <div class="mb-4">
-                        <label for="notes" class="form-label fw-semibold">Notes</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="3" 
-                                  placeholder="Any additional notes, special instructions, or reminders..."></textarea>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" 
+                                  placeholder="Describe the specific responsibilities and requirements..."></textarea>
                     </div>
                     
-                    <div class="d-flex gap-2 justify-content-end">
-                        <a href="{{ url_for('duties') }}" class="btn btn-outline-secondary px-4">
-                            <i class="fas fa-times me-2"></i>Cancel
-                        </a>
-                        <button type="submit" class="btn btn-warning px-4">
-                            <i class="fas fa-tasks me-2"></i>Assign Duty
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2" 
+                                  placeholder="Any additional notes or instructions..."></textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('duties') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Assign Duty
                         </button>
                     </div>
                 </form>
@@ -132,47 +98,32 @@
         </div>
     </div>
     
-    <div class="col-lg-4">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white border-bottom">
-                <h5 class="card-title mb-0 fw-semibold">
-                    <i class="fas fa-lightbulb text-info me-2"></i>
-                    Quick Guide
-                </h5>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Duty Guidelines</h5>
             </div>
             <div class="card-body">
-                <div class="d-flex align-items-start mb-3">
-                    <i class="fas fa-mouse-pointer text-primary mt-1 me-2"></i>
-                    <div>
-                        <h6 class="mb-1">Select Event</h6>
-                        <small class="text-muted">Choose the event this duty is for</small>
-                    </div>
-                </div>
+                <h6>Duty Types:</h6>
+                <ul>
+                    <li><strong>Supervision:</strong> Monitor students during events</li>
+                    <li><strong>Coordination:</strong> Manage event logistics</li>
+                    <li><strong>Judging:</strong> Evaluate competitions</li>
+                    <li><strong>Logistics:</strong> Handle setup and materials</li>
+                    <li><strong>Registration:</strong> Check-in participants</li>
+                    <li><strong>Security:</strong> Ensure safety and order</li>
+                    <li><strong>Other:</strong> Any other responsibilities</li>
+                </ul>
                 
-                <div class="d-flex align-items-start mb-3">
-                    <i class="fas fa-user-tie text-success mt-1 me-2"></i>
-                    <div>
-                        <h6 class="mb-1">Person Assignment</h6>
-                        <small class="text-muted">Enter the name of the person being assigned</small>
-                    </div>
-                </div>
-                
-                <div class="d-flex align-items-start mb-3">
-                    <i class="fas fa-tools text-warning mt-1 me-2"></i>
-                    <div>
-                        <h6 class="mb-1">Duty Types</h6>
-                        <small class="text-muted">Choose the most appropriate duty category</small>
-                    </div>
-                </div>
-                
-                <button type="button" class="btn btn-outline-primary w-100 mb-3" onclick="fillEventDetails()">
-                    <i class="fas fa-magic me-2"></i>Use Event Details
+                <h6>Quick Fill Options:</h6>
+                <button type="button" class="btn btn-sm btn-outline-secondary mb-1" onclick="fillEventDetails()">
+                    Use Event Details
                 </button>
                 
-                <div class="alert alert-info mb-0">
+                <div class="alert alert-info mt-3">
                     <small>
-                        <i class="fas fa-bell me-1"></i>
-                        Assigned persons will be notified about their duties.
+                        <i class="fas fa-info-circle"></i> 
+                        Participants will be notified of their duty assignments.
                     </small>
                 </div>
             </div>
@@ -181,23 +132,6 @@
 </div>
 
 <script>
-// Form validation
-(function() {
-    'use strict';
-    window.addEventListener('load', function() {
-        var forms = document.getElementsByClassName('needs-validation');
-        var validation = Array.prototype.filter.call(forms, function(form) {
-            form.addEventListener('submit', function(event) {
-                if (form.checkValidity() === false) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    }, false);
-})();
-
 function updateEventDetails() {
     const select = document.getElementById('event_id');
     const selectedOption = select.options[select.selectedIndex];
@@ -217,12 +151,6 @@ function updateEventDetails() {
 
 function fillEventDetails() {
     updateEventDetails();
-}
-
-// Auto-set today's date if no event selected
-const today = new Date().toISOString().split('T')[0];
-if (!document.getElementById('event_id').value) {
-    document.getElementById('duty_date').value = today;
 }
 </script>
 {% endblock %}

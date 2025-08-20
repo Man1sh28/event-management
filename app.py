@@ -1,9 +1,10 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 import sqlite3
 import os
 from datetime import datetime, date, timedelta
 import calendar
 import json
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'
@@ -31,6 +32,7 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS participants (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            unique_id TEXT UNIQUE NOT NULL,
             name TEXT NOT NULL,
             type TEXT NOT NULL CHECK (type IN ('student')),
             class_dept TEXT NOT NULL,
@@ -49,6 +51,15 @@ def init_db():
             school TEXT,
             contact TEXT,
             email TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT DEFAULT 'user',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -182,6 +193,12 @@ def add_calendar_event():
     return render_template('add_calendar_event.html', prefill_date=prefill_date)
 
 @app.route('/')
+def index():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return dashboard()
+
+@app.route('/dashboard')
 def dashboard():
     conn = get_db_connection()
     
@@ -322,13 +339,14 @@ def participants():
 @app.route('/participants/add', methods=['GET', 'POST'])
 def add_participant():
     if request.method == 'POST':
+        unique_id = request.form['unique_id']
         name = request.form['name']
         participant_type = request.form['type']
         school = request.form['school']
         grade = request.form.get('grade', '')
         contact = request.form['contact']
         emergency_contact = request.form['emergency_contact']
-        
+
 
         if grade:
             class_dept = f"Grade {grade}"
@@ -337,9 +355,9 @@ def add_participant():
         
         conn = get_db_connection()
         conn.execute('''
-            INSERT INTO participants (name, type, class_dept, contact, emergency_contact)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (name, participant_type, class_dept, contact, emergency_contact))
+            INSERT INTO participants (unique_id, name, type, class_dept, school, contact, emergency_contact)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (unique_id, name, participant_type, class_dept, school, contact, emergency_contact))
         conn.commit()
         conn.close()
         
@@ -354,13 +372,14 @@ def edit_participant(id):
     participant = conn.execute('SELECT * FROM participants WHERE id = ?', (id,)).fetchone()
     
     if request.method == 'POST':
+        unique_id = request.form['unique_id']
         name = request.form['name']
         participant_type = request.form['type']
         school = request.form['school']
         grade = request.form.get('grade', '')
         contact = request.form['contact']
         emergency_contact = request.form['emergency_contact']
-        
+
 
         if grade:
             class_dept = f"Grade {grade}"
@@ -368,9 +387,9 @@ def edit_participant(id):
             class_dept = school
         
         conn.execute('''
-            UPDATE participants SET name = ?, type = ?, class_dept = ?, 
+            UPDATE participants SET unique_id = ?, name = ?, type = ?, class_dept = ?, school = ?, 
                            contact = ?, emergency_contact = ? WHERE id = ?
-        ''', (name, participant_type, class_dept, contact, emergency_contact, id))
+        ''', (unique_id, name, participant_type, class_dept, school, contact, emergency_contact, id))
         conn.commit()
         conn.close()
         
@@ -733,6 +752,69 @@ def delete_all_data():
         conn.close()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        conn = get_db_connection()
+        user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+        conn.close()
+        
+        if user and check_password_hash(user['password_hash'], password):
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['role'] = user['role']
+            flash('Login successful!', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Invalid username or password!', 'error')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('login'))
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        
+        if password != confirm_password:
+            flash('Passwords do not match!', 'error')
+            return render_template('register.html')
+        
+        conn = get_db_connection()
+        existing_user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+        
+        if existing_user:
+            conn.close()
+            flash('Username already exists!', 'error')
+            return render_template('register.html')
+        
+        password_hash = generate_password_hash(password)
+        conn.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)', 
+                    (username, password_hash, 'user'))
+        conn.commit()
+        conn.close()
+        
+        flash('Registration successful! Please login.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
+@app.before_request
+def require_login():
+    allowed_routes = ['login', 'register', 'static', 'index']
+    if request.endpoint not in allowed_routes and 'user_id' not in session:
+        return redirect(url_for('login'))
+
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True, host='0.0.0.0', port=8001)
+    app.run(debug=True, host='0.0.0.0', port=8002)

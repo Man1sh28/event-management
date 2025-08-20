@@ -63,21 +63,132 @@
         .user-avatar:hover { background: #e5e5ea; }
         .user-avatar i { font-size: 20px; color: #007aff; }
         
-        /* Ensure dropdown appears above fixed navbar */
+      
         .dropdown-menu {
-            z-index: 1050 !important;
-            margin-top: 8px !important;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            z-index: 1050;
+            margin-top: 8px;
             border: 1px solid rgba(0, 0, 0, 0.1);
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            background: white;
+            border-radius: 8px;
+            min-width: 160px;
+            padding: 8px 0;
+            display: none;
+        }
+        .dropdown-menu.show {
+            display: block;
         }
         .dropdown-toggle {
             background: none;
             border: none;
             padding: 0;
             outline: none;
+            cursor: pointer;
         }
         .dropdown-toggle:focus {
             box-shadow: none;
+        }
+        .dropdown-item {
+            display: block;
+            padding: 8px 16px;
+            text-decoration: none;
+            color: #1d1d1f;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: rgba(0, 0, 0, 0.04);
+            color: #007aff;
+        }
+        .dropdown-divider {
+            height: 1px;
+            margin: 8px 0;
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .custom-alert {
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 12px;
+            position: relative;
+            font-size: 15px;
+            line-height: 1.5;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .custom-alert-success {
+            background-color: rgba(52, 199, 89, 0.1);
+            border-color: rgba(52, 199, 89, 0.2);
+            color: #34c759;
+        }
+        
+        .custom-alert-info {
+            background-color: rgba(0, 122, 255, 0.1);
+            border-color: rgba(0, 122, 255, 0.2);
+            color: #007aff;
+        }
+        
+        .custom-alert-warning {
+            background-color: rgba(255, 204, 0, 0.1);
+            border-color: rgba(255, 204, 0, 0.2);
+            color: #ffcc00;
+        }
+        
+        .custom-alert-danger {
+            background-color: rgba(255, 59, 48, 0.1);
+            border-color: rgba(255, 59, 48, 0.2);
+            color: #ff3b30;
+        }
+        
+        .alert-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            color: inherit;
+            padding: 0;
+            margin-left: 10px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .alert-close:hover {
+            opacity: 1;
+        }
+        
+        .auth-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .btn-outline {
+            padding: 8px 16px;
+            border: 1px solid #007aff;
+            background: transparent;
+            color: #007aff;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        
+        .btn-outline:hover {
+            background: #007aff;
+            color: white;
         }
     </style>
 </head>
@@ -130,22 +241,22 @@
                         </ul>
                     </div>
                 {% else %}
-                    <div class="d-flex gap-2">
-                        <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-sm">Login</a>
-                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm">Register</a>
+                    <div class="auth-buttons">
+                        <a href="{{ url_for('login') }}" class="btn-outline">Login</a>
+                        <a href="{{ url_for('register') }}" class="btn-primary">Register</a>
                     </div>
                 {% endif %}
             </div>
         </div>
     </nav>
 
-    <div class="container mt-4" style="padding-top: 80px;">
+    <div class="main-container" style="padding-top: 80px;">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    <div class="custom-alert custom-alert-{{ category }} show">
                         {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <button type="button" class="alert-close" onclick="this.parentElement.remove()">&times;</button>
                     </div>
                 {% endfor %}
             {% endif %}
@@ -154,11 +265,39 @@
         {% block content %}{% endblock %}
     </div>
 
-   
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
-            var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
-            var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
-                return new bootstrap.Dropdown(dropdownToggleEl);
+          
+            const dropdowns = document.querySelectorAll('.dropdown');
+            dropdowns.forEach(dropdown => {
+                const toggle = dropdown.querySelector('.dropdown-toggle');
+                const menu = dropdown.querySelector('.dropdown-menu');
+                
+                if (toggle && menu) {
+                    toggle.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const isOpen = menu.classList.contains('show');
+                        
+                       
+                        document.querySelectorAll('.dropdown-menu').forEach(m => {
+                            m.classList.remove('show');
+                        });
+                        
+                        
+                        if (!isOpen) {
+                            menu.classList.add('show');
+                        }
+                    });
+                }
+            });
+            
+           
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.dropdown')) {
+                    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                        menu.classList.remove('show');
+                    });
+                }
             });
         });
     </script>

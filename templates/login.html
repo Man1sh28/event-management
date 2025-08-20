@@ -3,59 +3,315 @@
 {% block title %}Login - EvenZa{% endblock %}
 
 {% block content %}
-<div class="auth-card">
-    <div class="card-body p-5">
-        <div class="auth-header">
+<div class="login-card">
+    <div class="login-header">
+        <div class="login-logo">
             <i class="fas fa-graduation-cap"></i>
-            <h2 class="fw-bold text-dark">Welcome Back</h2>
-            <p class="text-muted">Sign in to your account</p>
+            <span>EvenZa</span>
         </div>
-                
-                <form method="POST" action="{{ url_for('login') }}">
-                    <div class="mb-4">
-                        <label for="username" class="form-label fw-semibold text-dark">Username</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-0">
-                                <i class="fas fa-user text-muted"></i>
-                            </span>
-                            <input type="text" 
-                                   class="form-control form-control-lg bg-light border-0" 
-                                   id="username" 
-                                   name="username" 
-                                   placeholder="Enter your username" 
-                                   required>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label for="password" class="form-label fw-semibold text-dark">Password</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-0">
-                                <i class="fas fa-lock text-muted"></i>
-                            </span>
-                            <input type="password" 
-                                   class="form-control form-control-lg bg-light border-0" 
-                                   id="password" 
-                                   name="password" 
-                                   placeholder="Enter your password" 
-                                   required>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
-                    <i class="fas fa-sign-in-alt me-2"></i>
-                    Sign In
-                </button>
-                </form>
-                
-                <div class="auth-footer">
-                    <p class="text-muted mb-0">
-                        Don't have an account? 
-                        <a href="{{ url_for('register') }}">
-                            Sign up here
-                        </a>
-                    </p>
-                </div>
+        <h2>Welcome Back</h2>
+        <p>Sign in to manage your events and participants</p>
+    </div>
+    
+    <form method="POST" action="{{ url_for('login') }}" class="login-form">
+        <div class="form-group">
+            <label for="username" class="form-label">Username</label>
+            <div class="input-container">
+                <i class="fas fa-user input-icon"></i>
+                <input type="text" 
+                       class="form-input" 
+                       id="username" 
+                       name="username" 
+                       placeholder="Enter your username" 
+                       required>
             </div>
         </div>
+        
+        <div class="form-group">
+            <label for="password" class="form-label">Password</label>
+            <div class="input-container">
+                <i class="fas fa-lock input-icon"></i>
+                <input type="password" 
+                       class="form-input" 
+                       id="password" 
+                       name="password" 
+                       placeholder="Enter your password" 
+                       required>
+                <button type="button" class="password-toggle" onclick="togglePassword()">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="form-options">
+            <label class="checkbox-container">
+                <input type="checkbox" name="remember" id="remember">
+                <span class="checkmark"></span>
+                Remember me
+            </label>
+            <a href="#" class="forgot-link">Forgot password?</a>
+        </div>
+        
+        <button type="submit" class="login-btn">
+            <span>Sign In</span>
+            <i class="fas fa-arrow-right"></i>
+        </button>
+    </form>
+    
+
+    
+    <div class="login-footer">
+        <p>Don't have an account? <a href="{{ url_for('register') }}">Sign up here</a></p>
+    </div>
+</div>
+
+<style>
+.login-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 24px;
+    padding: 48px 40px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    max-width: 420px;
+    width: 100%;
+    animation: slideUp 0.6s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.login-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.login-logo i {
+    font-size: 2.5rem;
+    color: #667eea;
+}
+
+.login-logo span {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: white;
+}
+
+.login-header h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.login-header p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1rem;
+}
+
+.form-group {
+    margin-bottom: 24px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+}
+
+.input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon {
+    position: absolute;
+    left: 16px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 1rem;
+    z-index: 2;
+}
+
+.form-input {
+    width: 100%;
+    padding: 14px 16px 14px 48px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    color: white;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.form-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.password-toggle {
+    position: absolute;
+    right: 16px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.3s ease;
+}
+
+.password-toggle:hover {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    font-size: 0.9rem;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+}
+
+.checkbox-container input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #667eea;
+}
+
+.forgot-link {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.forgot-link:hover {
+    text-decoration: underline;
+}
+
+.login-btn {
+    width: 100%;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.login-btn:active {
+    transform: translateY(0);
+}
+
+.login-footer {
+    margin-top: 32px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+}
+
+.login-footer a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.login-footer a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .login-card {
+        padding: 32px 24px;
+        margin: 16px;
+    }
+    
+
+    
+    .form-options {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+}
+</style>
+
+<script>
+function togglePassword() {
+    const passwordInput = document.getElementById('password');
+    const icon = document.querySelector('.password-toggle i');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+// Add floating animation to the card
+window.addEventListener('load', function() {
+    const card = document.querySelector('.login-card');
+    card.style.animation = 'slideUp 0.6s ease-out';
+});
+
+// Form validation
+const form = document.querySelector('.login-form');
+form.addEventListener('submit', function(e) {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    
+    if (!username || !password) {
+        e.preventDefault();
+        alert('Please fill in all fields');
+    }
+});
+</script>
 {% endblock %}

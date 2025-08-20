@@ -3,208 +3,359 @@
 {% block title %}Add Event - School Event Management{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
+<div class="add-event-container">
+    <div class="page-header">
         <h1><i class="fas fa-calendar-plus"></i> Add New Event</h1>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="{{ url_for('events') }}">Events</a></li>
-                <li class="breadcrumb-item active">Add Event</li>
-            </ol>
-        </nav>
+        <div class="breadcrumb">
+            <a href="{{ url_for('dashboard') }}">Dashboard</a> / 
+            <a href="{{ url_for('events') }}">Events</a> / 
+            <span>Add Event</span>
+        </div>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Event Details</h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" id="eventForm">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Event Name *</label>
-                        <input type="text" class="form-control" id="name" name="name" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="type" class="form-label">Event Type *</label>
-                        <select class="form-select" id="type" name="type" required>
-                            <option value="">Select Type</option>
-                            <option value="sports">Sports</option>
-                            <option value="cultural">Cultural</option>
-                            <option value="academic">Academic</option>
-                            <option value="technical">Technical</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="event_date" class="form-label">Date *</label>
-                            <input type="date" class="form-control" id="event_date" name="event_date" required>
+    <div class="add-event-grid">
+        <div class="add-event-main">
+            <div class="form-card">
+                <div class="form-card-header">
+                    <h5>Event Details</h5>
+                </div>
+                <div class="form-card-body">
+                    <form method="POST" id="eventForm">
+                        <div class="form-field">
+                            <label for="name">Event Name *</label>
+                            <input type="text" id="name" name="name" required>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="start_time" class="form-label">Start Time *</label>
-                            <input type="time" class="form-control" id="start_time" name="start_time" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="end_time" class="form-label">End Time *</label>
-                            <input type="time" class="form-control" id="end_time" name="end_time" required>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="venue" class="form-label">Venue *</label>
-                        <input type="text" class="form-control" id="venue" name="venue" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="host_school" class="form-label">Host School *</label>
-                        <input type="text" class="form-control" id="host_school" name="host_school" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="participating_schools" class="form-label">Participating Schools</label>
-                        <input type="text" class="form-control" id="participating_schools" name="participating_schools" 
-                               placeholder="Enter schools separated by commas">
-                        <small class="form-text text-muted">Enter participating schools separated by commas</small>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-                    </div>
-                    
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{{ url_for('events') }}" class="btn btn-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Save Event
-                        </button>
-                    </div>
-                </form>
-                <script>
-                    document.getElementById('eventForm').addEventListener('submit', function(e) {
-                        const requiredFields = ['name', 'type', 'event_date', 'start_time', 'end_time', 'venue', 'host_school'];
-                        let isValid = true;
                         
-                        requiredFields.forEach(field => {
-                            const input = document.getElementById(field);
-                            if (!input.value.trim()) {
-                                input.classList.add('is-invalid');
-                                isValid = false;
-                            } else {
-                                input.classList.remove('is-invalid');
+                        <div class="form-field">
+                            <label for="type">Event Type *</label>
+                            <select id="type" name="type" required>
+                                <option value="">Select Type</option>
+                                <option value="sports">Sports</option>
+                                <option value="cultural">Cultural</option>
+                                <option value="academic">Academic</option>
+                                <option value="technical">Technical</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-field">
+                                <label for="event_date">Date *</label>
+                                <input type="date" id="event_date" name="event_date" required>
+                            </div>
+                            <div class="form-field">
+                                <label for="start_time">Start Time *</label>
+                                <input type="time" id="start_time" name="start_time" required>
+                            </div>
+                            <div class="form-field">
+                                <label for="end_time">End Time *</label>
+                                <input type="time" id="end_time" name="end_time" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label for="venue">Venue *</label>
+                            <input type="text" id="venue" name="venue" required>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label for="host_school">Host School *</label>
+                            <input type="text" id="host_school" name="host_school" required>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label for="participating_schools">Participating Schools</label>
+                            <input type="text" id="participating_schools" name="participating_schools" 
+                                   placeholder="Enter schools separated by commas">
+                            <small class="form-help">Enter participating schools separated by commas</small>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label for="description">Description</label>
+                            <textarea id="description" name="description" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <a href="{{ url_for('events') }}" class="btn-secondary">Cancel</a>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-save"></i> Save Event
+                            </button>
+                        </div>
+                    </form>
+                    <script>
+                        document.getElementById('eventForm').addEventListener('submit', function(e) {
+                            const requiredFields = ['name', 'type', 'event_date', 'start_time', 'end_time', 'venue', 'host_school'];
+                            let isValid = true;
+                            
+                            requiredFields.forEach(field => {
+                                const input = document.getElementById(field);
+                                if (!input.value.trim()) {
+                                    input.classList.add('is-invalid');
+                                    isValid = false;
+                                } else {
+                                    input.classList.remove('is-invalid');
+                                }
+                            });
+                            
+                            if (!isValid) {
+                                e.preventDefault();
+                                return false;
                             }
                         });
                         
-                        if (!isValid) {
-                            e.preventDefault();
-                            return false;
-                        }
-                    });
-                    
-                    document.getElementById('event_date').valueAsDate = new Date();
-                </script>
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Event Name *</label>
-                        <input type="text" class="form-control" id="name" name="name" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="type" class="form-label">Event Type *</label>
-                        <select class="form-select" id="type" name="type" required>
-                            <option value="">Select Type</option>
-                            <option value="sports">Sports</option>
-                            <option value="cultural">Cultural</option>
-                            <option value="academic">Academic</option>
-                            <option value="technical">Technical</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="event_date" class="form-label">Date *</label>
-                            <input type="date" class="form-control" id="event_date" name="event_date" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="start_time" class="form-label">Start Time *</label>
-                            <input type="time" class="form-control" id="start_time" name="start_time" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="end_time" class="form-label">End Time *</label>
-                            <input type="time" class="form-control" id="end_time" name="end_time" required>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="venue" class="form-label">Venue *</label>
-                        <input type="text" class="form-control" id="venue" name="venue" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="host_school" class="form-label">Host School *</label>
-                        <input type="text" class="form-control" id="host_school" name="host_school" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="participating_schools" class="form-label">Participating Schools</label>
-                        <input type="text" class="form-control" id="participating_schools" name="participating_schools" 
-                               placeholder="Enter schools separated by commas">
-                        <small class="form-text text-muted">Enter participating schools separated by commas</small>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-                    </div>
-                    
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{{ url_for('events') }}" class="btn btn-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Save Event
-                        </button>
-                    </div>
-                </form>
+                        document.getElementById('event_date').valueAsDate = new Date();
+                    </script>
+                </div>
             </div>
         </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Event Guidelines</h5>
-            </div>
-            <div class="card-body">
-                <h6>Required Information:</h6>
-                <ul>
-                    <li>Event name</li>
-                    <li>Event type</li>
-                    <li>Date and time</li>
-                    <li>Venue</li>
-                    <li>Host school</li>
-                </ul>
-                
-                <h6>Event Types:</h6>
-                <ul>
-                    <li><strong>Sports:</strong> Athletic competitions</li>
-                    <li><strong>Cultural:</strong> Cultural programs and activities</li>
-                    <li><strong>Academic:</strong> Academic competitions</li>
-                    <li><strong>Technical:</strong> Technical events and workshops</li>
-                    <li><strong>Other:</strong> Any other type of event</li>
-                </ul>
-                
-                <div class="alert alert-info">
-                    <small>
-                        <i class="fas fa-info-circle"></i> 
-                        All events will be automatically marked as upcoming based on the date.
-                    </small>
+        
+        <div class="add-event-sidebar">
+            <div class="info-card">
+                <div class="info-card-header">
+                    <h5>Event Guidelines</h5>
+                </div>
+                <div class="info-card-body">
+                    <h6>Required Information:</h6>
+                    <ul>
+                        <li>Event name</li>
+                        <li>Event type</li>
+                        <li>Date and time</li>
+                        <li>Venue</li>
+                        <li>Host school</li>
+                    </ul>
+                    
+                    <h6>Event Types:</h6>
+                    <ul>
+                        <li><strong>Sports:</strong> Athletic competitions</li>
+                        <li><strong>Cultural:</strong> Cultural programs and activities</li>
+                        <li><strong>Academic:</strong> Academic competitions</li>
+                        <li><strong>Technical:</strong> Technical events and workshops</li>
+                        <li><strong>Other:</strong> Any other type of event</li>
+                    </ul>
+                    
+                    <div class="info-alert">
+                        <small>
+                            <i class="fas fa-info-circle"></i> 
+                            All events will be automatically marked as upcoming based on the date.
+                        </small>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+  <style>
+    .add-event-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .page-header {
+        margin-bottom: 30px;
+    }
+
+    .page-header h1 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    .breadcrumb {
+        font-size: 14px;
+        color: #6c757d;
+    }
+
+    .breadcrumb a {
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+        text-decoration: underline;
+    }
+
+    .breadcrumb span {
+        color: #6c757d;
+    }
+
+    .add-event-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+        align-items: start;
+    }
+
+    .add-event-main {
+        min-width: 0;
+    }
+
+    .add-event-sidebar {
+        min-width: 0;
+    }
+
+    .form-card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .form-card-header {
+        padding: 20px;
+        border-bottom: 1px solid #dee2e6;
+        background: #f8f9fa;
+    }
+
+    .form-card-header h5 {
+        margin: 0;
+        color: #2c3e50;
+        font-weight: 600;
+    }
+
+    .form-card-body {
+        padding: 20px;
+    }
+
+    .form-field {
+        margin-bottom: 20px;
+    }
+
+    .form-field label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .form-field input,
+    .form-field select,
+    .form-field textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 16px;
+    }
+
+    .form-field textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+
+    .form-help {
+        color: #6c757d;
+        font-size: 12px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 30px;
+    }
+
+    .btn-primary {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .btn-primary:hover {
+        background: #0056b3;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+        background: #545b62;
+    }
+
+    .info-card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .info-card-header {
+        padding: 15px;
+        border-bottom: 1px solid #dee2e6;
+        background: #f8f9fa;
+    }
+
+    .info-card-header h5 {
+        margin: 0;
+        color: #2c3e50;
+        font-weight: 600;
+    }
+
+    .info-card-body {
+        padding: 15px;
+    }
+
+    .info-card-body h6 {
+        margin: 15px 0 10px 0;
+        color: #2c3e50;
+        font-weight: 600;
+    }
+
+    .info-card-body ul {
+        margin: 0 0 15px 0;
+        padding-left: 20px;
+    }
+
+    .info-card-body li {
+        margin-bottom: 5px;
+        color: #555;
+    }
+
+    .info-alert {
+        background-color: #e3f2fd;
+        border: 1px solid #90caf9;
+        border-radius: 4px;
+        padding: 10px;
+    }
+
+    .info-alert small {
+        color: #1976d2;
+    }
+
+    .is-invalid {
+        border-color: #dc3545 !important;
+    }
+
+    @media (max-width: 768px) {
+        .add-event-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+    }
+  </style>
 </div>
 {% endblock %}

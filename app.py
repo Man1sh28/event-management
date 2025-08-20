@@ -127,7 +127,6 @@ def get_calendar_data(year, month):
         'datetime': dt
     }
 
-# Routes
 @app.route('/calendar')
 def calendar_view():
     year = int(request.args.get('year', datetime.now().year))
@@ -202,13 +201,11 @@ def index():
 def dashboard():
     conn = get_db_connection()
     
-    
     total_events = conn.execute('SELECT COUNT(*) as count FROM events').fetchone()['count']
     total_participants = conn.execute('SELECT COUNT(*) as count FROM participants WHERE type = "student"').fetchone()['count']
     total_duty_personnel = conn.execute('SELECT COUNT(*) as count FROM duty_personnel').fetchone()['count']
     total_duties = conn.execute('SELECT COUNT(*) as count FROM duties').fetchone()['count']
 
-    # Upcoming events
     upcoming_events = conn.execute('''
         SELECT * FROM events 
         WHERE event_date >= DATE('now') 
@@ -347,7 +344,6 @@ def add_participant():
         contact = request.form['contact']
         emergency_contact = request.form['emergency_contact']
 
-
         if grade:
             class_dept = f"Grade {grade}"
         else:
@@ -380,7 +376,6 @@ def edit_participant(id):
         contact = request.form['contact']
         emergency_contact = request.form['emergency_contact']
 
-
         if grade:
             class_dept = f"Grade {grade}"
         else:
@@ -408,9 +403,6 @@ def delete_participant(id):
     
     flash('Participant deleted successfully!', 'success')
     return redirect(url_for('participants'))
-
-# Volunteers routes
-
 
 @app.route('/duties')
 def duties():
@@ -444,7 +436,6 @@ def assign_duty():
         description = request.form['description']
         notes = request.form['notes']
         
-
         time_parts = time_slot.split(' - ')
         start_time = time_parts[0].strip()
         end_time = time_parts[1].strip() if len(time_parts) > 1 else start_time
@@ -453,14 +444,12 @@ def assign_duty():
         
         conn = get_db_connection()
         
-
         person = conn.execute('SELECT id FROM duty_personnel WHERE name = ?', 
                              (person_name,)).fetchone()
         
         if person:
             duty_person_id = person['id']
         else:
-
             cursor = conn.execute('INSERT INTO duty_personnel (name, designation, school) VALUES (?, "", "")',
                                 (person_name,))
             duty_person_id = cursor.lastrowid
@@ -483,7 +472,6 @@ def assign_duty():
     
     return render_template('add_duty.html', events=events)
 
-# Alternative route name for backward compatibility
 @app.route('/duties/add', methods=['GET', 'POST'])
 def add_duty():
     return assign_duty()
@@ -503,21 +491,18 @@ def edit_duty(id):
         description = request.form['description']
         notes = request.form['notes']
         
-
         time_parts = time_slot.split(' - ')
         start_time = time_parts[0].strip()
         end_time = time_parts[1].strip() if len(time_parts) > 1 else start_time
         
         conn = get_db_connection()
         
-
         person = conn.execute('SELECT id FROM duty_personnel WHERE name = ?', 
                              (person_name,)).fetchone()
         
         if person:
             duty_person_id = person['id']
         else:
-
             cursor = conn.execute('INSERT INTO duty_personnel (name, designation, school) VALUES (?, "", "")',
                                 (person_name,))
             duty_person_id = cursor.lastrowid
@@ -553,204 +538,31 @@ def delete_duty(id):
 @app.route('/api/events')
 def api_events():
     conn = get_db_connection()
-    events = conn.execute('SELECT * FROM events ORDER BY event_date DESC').fetchall()
+    events = conn.execute('SELECT * FROM events ORDER BY event_date').fetchall()
     conn.close()
+    
     return jsonify([dict(event) for event in events])
 
 @app.route('/api/participants')
 def api_participants():
     conn = get_db_connection()
-    participants = conn.execute('SELECT * FROM participants ORDER BY name').fetchall()
+    participants = conn.execute('SELECT * FROM participants').fetchall()
     conn.close()
     
     return jsonify([dict(participant) for participant in participants])
-
-
 
 @app.route('/api/duties')
 def api_duties():
     conn = get_db_connection()
     duties = conn.execute('''
-        SELECT d.*, e.name as event_name, 
-               p.name as person_name,
-               'Participant' as person_type
+        SELECT d.*, e.name as event_name, dp.name as person_name
         FROM duties d
         JOIN events e ON d.event_id = e.id
-        JOIN participants p ON d.participant_id = p.id
-        ORDER BY d.assigned_at DESC
+        JOIN duty_personnel dp ON d.duty_person_id = dp.id
     ''').fetchall()
     conn.close()
+    
     return jsonify([dict(duty) for duty in duties])
-
-@app.route('/reports')
-def reports():
-    conn = get_db_connection()
-    
-
-    stats = {
-        'total_events': conn.execute('SELECT COUNT(*) as count FROM events').fetchone()['count'],
-        'total_participants': conn.execute('SELECT COUNT(*) as count FROM participants').fetchone()['count'],
-        'total_duties': conn.execute('SELECT COUNT(*) as count FROM duties').fetchone()['count']
-    }
-    
-
-    events_by_type = conn.execute('''
-        SELECT type, COUNT(*) as count
-        FROM events
-        GROUP BY type
-    ''').fetchall()
-    events_by_type_labels = [row['type'] for row in events_by_type]
-    events_by_type_data = [row['count'] for row in events_by_type]
-    
-
-    participants_by_type = conn.execute('''
-        SELECT type, COUNT(*) as count
-        FROM participants
-        GROUP BY type
-    ''').fetchall()
-    participants_by_type_data = [row['count'] for row in participants_by_type]
-    
-
-    events_timeline = conn.execute('''
-        SELECT event_date, COUNT(*) as count
-        FROM events
-        WHERE event_date >= date('now', '-30 days')
-        GROUP BY event_date
-        ORDER BY event_date
-    ''').fetchall()
-    events_timeline_labels = [row['event_date'] for row in events_timeline]
-    events_timeline_data = [row['count'] for row in events_timeline]
-    
-    # Get top participating schools
-    top_schools = []
-    
-    # Get duty statistics
-    duty_stats = conn.execute('''
-        SELECT duty_type, COUNT(*) as count
-        FROM duties
-        GROUP BY duty_type
-    ''').fetchall()
-    
-    conn.close()
-    
-    return render_template('reports.html', 
-                         stats=stats, 
-                         top_schools=top_schools,
-                         duty_stats=duty_stats,
-                         events_by_type_labels=events_by_type_labels,
-                         events_by_type_data=events_by_type_data,
-                         participants_by_type_data=participants_by_type_data,
-                         events_timeline_labels=events_timeline_labels,
-                         events_timeline_data=events_timeline_data)
-
-@app.route('/export')
-def export_data():
-    import csv
-    import io
-    
-    export_type = request.args.get('type', 'events')
-    conn = get_db_connection()
-    
-    # Create a string buffer to hold CSV data
-    output = io.StringIO()
-    
-    try:
-        if export_type == 'events':
-            data = conn.execute('SELECT * FROM events ORDER BY event_date DESC').fetchall()
-            if data:
-                # Use actual column names from the first row
-                headers = list(dict(data[0]).keys())
-                writer = csv.DictWriter(output, fieldnames=headers)
-                writer.writeheader()
-                for row in data:
-                    writer.writerow(dict(row))
-            filename = 'events.csv'
-            
-        elif export_type == 'participants':
-            data = conn.execute('SELECT * FROM participants ORDER BY name').fetchall()
-            if data:
-                headers = list(dict(data[0]).keys())
-                writer = csv.DictWriter(output, fieldnames=headers)
-                writer.writeheader()
-                for row in data:
-                    writer.writerow(dict(row))
-            filename = 'participants.csv'
-            
-        elif export_type == 'teachers':
-            data = conn.execute('SELECT * FROM participants WHERE type = "teacher" ORDER BY class_dept, name').fetchall()
-            if data:
-                headers = list(dict(data[0]).keys())
-                writer = csv.DictWriter(output, fieldnames=headers)
-                writer.writeheader()
-                for row in data:
-                    writer.writerow(dict(row))
-            filename = 'teachers.csv'
-            
-        elif export_type == 'duties':
-            data = conn.execute('''
-                SELECT d.id, d.duty_type, d.duty_date, d.start_time, d.end_time, 
-                       d.location, d.description, d.notes, d.assigned_at,
-                       e.name as event_name, e.event_date as event_date,
-                       dp.name as person_name, dp.designation, dp.school
-                FROM duties d
-                JOIN events e ON d.event_id = e.id
-                JOIN duty_personnel dp ON d.duty_person_id = dp.id
-                ORDER BY d.duty_date DESC
-            ''').fetchall()
-            if data:
-                headers = list(dict(data[0]).keys())
-                writer = csv.DictWriter(output, fieldnames=headers)
-                writer.writeheader()
-                for row in data:
-                    writer.writerow(dict(row))
-            filename = 'duties.csv'
-        else:
-            return jsonify({'error': 'Invalid export type'}), 400
-        
-        # Get CSV content and prepare response
-        csv_content = output.getvalue()
-        output.close()
-        
-        # Create response with proper headers for file download
-        response = app.response_class(
-            csv_content,
-            mimetype='text/csv',
-            headers={
-                'Content-Disposition': f'attachment; filename={filename}',
-                'Content-Type': 'text/csv'
-            }
-        )
-        
-        return response
-        
-    except Exception as e:
-        conn.close()
-        output.close()
-        return jsonify({'error': str(e)}), 500
-    
-    conn.close()
-
-@app.route('/delete-all-data', methods=['POST'])
-def delete_all_data():
-    """Delete all data from the database"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Delete all data from tables in the correct order due to foreign key constraints
-        cursor.execute('DELETE FROM duties')
-        cursor.execute('DELETE FROM participants')
-        cursor.execute('DELETE FROM duty_personnel')
-        cursor.execute('DELETE FROM events')
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({'success': True, 'message': 'All data has been successfully deleted.'})
-    except Exception as e:
-        conn.rollback()
-        conn.close()
-        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -769,14 +581,14 @@ def login():
             flash('Login successful!', 'success')
             return redirect(url_for('dashboard'))
         else:
-            flash('Invalid username or password!', 'error')
+            flash('Invalid username or password', 'error')
     
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
     session.clear()
-    flash('You have been logged out.', 'info')
+    flash('Logged out successfully', 'success')
     return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -787,20 +599,19 @@ def register():
         confirm_password = request.form['confirm_password']
         
         if password != confirm_password:
-            flash('Passwords do not match!', 'error')
+            flash('Passwords do not match', 'error')
             return render_template('register.html')
         
         conn = get_db_connection()
         existing_user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
         
         if existing_user:
+            flash('Username already exists', 'error')
             conn.close()
-            flash('Username already exists!', 'error')
             return render_template('register.html')
         
         password_hash = generate_password_hash(password)
-        conn.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)', 
-                    (username, password_hash, 'user'))
+        conn.execute('INSERT INTO users (username, password_hash) VALUES (?, ?)', (username, password_hash))
         conn.commit()
         conn.close()
         
@@ -809,12 +620,121 @@ def register():
     
     return render_template('register.html')
 
-@app.before_request
-def require_login():
-    allowed_routes = ['login', 'register', 'static', 'index']
-    if request.endpoint not in allowed_routes and 'user_id' not in session:
-        return redirect(url_for('login'))
+@app.route('/reports')
+def reports():
+    conn = get_db_connection()
+    
+    total_events = conn.execute('SELECT COUNT(*) as count FROM events').fetchone()['count']
+    total_participants = conn.execute('SELECT COUNT(*) as count FROM participants').fetchone()['count']
+    total_duties = conn.execute('SELECT COUNT(*) as count FROM duties').fetchone()['count']
+    
+    event_types = conn.execute('''
+        SELECT type, COUNT(*) as count 
+        FROM events 
+        GROUP BY type 
+        ORDER BY count DESC
+    ''').fetchall()
+    
+    monthly_events = conn.execute('''
+        SELECT strftime('%Y-%m', event_date) as month, COUNT(*) as count
+        FROM events
+        WHERE event_date >= date('now', '-12 months')
+        GROUP BY strftime('%Y-%m', event_date)
+        ORDER BY month
+    ''').fetchall()
+    
+    top_schools = conn.execute('''
+        SELECT school, COUNT(*) as count 
+        FROM participants 
+        GROUP BY school 
+        ORDER BY count DESC 
+        LIMIT 10
+    ''').fetchall()
+    
+    duty_stats = conn.execute('''
+        SELECT duty_type, COUNT(*) as count 
+        FROM duties 
+        GROUP BY duty_type
+    ''').fetchall()
+    
+    conn.close()
+    
+    return render_template('reports.html',
+                         total_events=total_events,
+                         total_participants=total_participants,
+                         total_duties=total_duties,
+                         event_types=event_types,
+                         monthly_events=monthly_events,
+                         top_schools=top_schools,
+                         duty_stats=duty_stats)
+
+@app.route('/reports/export')
+def export_reports():
+    import csv
+    from io import StringIO
+    from flask import make_response
+    
+    conn = get_db_connection()
+    
+    events = conn.execute('SELECT * FROM events ORDER BY event_date').fetchall()
+    participants = conn.execute('SELECT * FROM participants ORDER BY name').fetchall()
+    duties = conn.execute('''
+        SELECT d.*, e.name as event_name, dp.name as person_name
+        FROM duties d
+        JOIN events e ON d.event_id = e.id
+        JOIN duty_personnel dp ON d.duty_person_id = dp.id
+        ORDER BY d.duty_date
+    ''').fetchall()
+    
+    conn.close()
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    writer.writerow(['Events Report'])
+    writer.writerow(['ID', 'Name', 'Type', 'Date', 'Start Time', 'End Time', 'Venue', 'Host School'])
+    for event in events:
+        writer.writerow([event['id'], event['name'], event['type'], event['event_date'], 
+                        event['start_time'], event['end_time'], event['venue'], event['host_school']])
+    
+    writer.writerow([])
+    writer.writerow(['Participants Report'])
+    writer.writerow(['ID', 'Unique ID', 'Name', 'Type', 'Class/Dept', 'School', 'Contact'])
+    for participant in participants:
+        writer.writerow([participant['id'], participant['unique_id'], participant['name'], 
+                        participant['type'], participant['class_dept'], participant['school'], 
+                        participant['contact']])
+    
+    writer.writerow([])
+    writer.writerow(['Duties Report'])
+    writer.writerow(['ID', 'Event Name', 'Person Name', 'Duty Type', 'Date', 'Time', 'Location'])
+    for duty in duties:
+        writer.writerow([duty['id'], duty['event_name'], duty['person_name'], 
+                        duty['duty_type'], duty['duty_date'], 
+                        f"{duty['start_time']} - {duty['end_time']}", duty['location']])
+    
+    csv_content = output.getvalue()
+    
+    response = make_response(csv_content)
+    response.headers['Content-Disposition'] = 'attachment; filename=event_reports.csv'
+    response.headers['Content-Type'] = 'text/csv'
+    
+    return response
+
+@app.route('/delete_all_data', methods=['POST'])
+def delete_all_data():
+    conn = get_db_connection()
+    conn.execute('DELETE FROM duties')
+    conn.execute('DELETE FROM duty_personnel')
+    conn.execute('DELETE FROM participants')
+    conn.execute('DELETE FROM events')
+    conn.execute('DELETE FROM users')
+    conn.commit()
+    conn.close()
+    
+    flash('All data has been deleted successfully!', 'success')
+    return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True, host='0.0.0.0', port=8001)
+    app.run(debug=True)

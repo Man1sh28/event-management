@@ -597,108 +597,7 @@
         </div>
 
     
-        <div class="charts-grid">
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3 class="chart-title">Events by Type</h3>
-                </div>
-                <div class="chart-body">
-                    <canvas id="eventsChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3 class="chart-title">Participants by Type</h3>
-                </div>
-                <div class="chart-body">
-                    <canvas id="participantsChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3 class="chart-title">Duties by Type</h3>
-                </div>
-                <div class="chart-body">
-                    <canvas id="dutiesChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3 class="chart-title">Monthly Events</h3>
-                </div>
-                <div class="chart-body">
-                    <canvas id="monthlyChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-    
-        <div class="tables-grid">
-            <div class="table-card">
-                <div class="table-header">
-                    <h3 class="table-title">Top Participating Schools</h3>
-                </div>
-                <div class="table-body">
-                    {% if top_schools %}
-                        <table class="apple-table">
-                            <thead>
-                                <tr>
-                                    <th>School</th>
-                                    <th>Events</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for school in top_schools %}
-                                <tr>
-                                    <td>{{ school.school }}</td>
-                                    <td>
-                                        <span class="badge primary">{{ school.events }}</span>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    {% else %}
-                        <div class="empty-state">
-                            <i>📊</i>
-                            <p>No school data available.</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="table-card">
-                <div class="table-header">
-                    <h3 class="table-title">Duty Assignments</h3>
-                </div>
-                <div class="table-body">
-                    {% if duty_stats %}
-                        <table class="apple-table">
-                            <thead>
-                                <tr>
-                                    <th>Duty Type</th>
-                                    <th>Count</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for duty in duty_stats %}
-                                <tr>
-                                    <td>{{ duty.duty_type }}</td>
-                                    <td>
-                                        <span class="badge success">{{ duty.count }}</span>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    {% else %}
-                        <div class="empty-state">
-                            <i>📋</i>
-                            <p>No duty data available.</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+        
         <div class="export-section">
             <h3 class="export-title">Export Data</h3>
             <div class="export-buttons">
@@ -736,14 +635,27 @@
             indigo: '#5AC8FA'
         };
 
+        // Prepare data arrays
+        const eventsLabels = {{ events_by_type|map(attribute='type')|list|tojson }};
+        const eventsData = {{ events_by_type|map(attribute='count')|list|tojson }};
+        
+        const participantsLabels = {{ participants_by_type|map(attribute='type')|map('title')|list|tojson }};
+        const participantsData = {{ participants_by_type|map(attribute='count')|list|tojson }};
+        
+        const dutiesLabels = {{ duties_by_type|map(attribute='duty_type')|list|tojson }};
+        const dutiesData = {{ duties_by_type|map(attribute='count')|list|tojson }};
+        
+        const monthlyLabels = {{ monthly_events|map(attribute='month')|list|tojson }};
+        const monthlyData = {{ monthly_events|map(attribute='count')|list|tojson }};
+
         // Events by Type Chart
         const eventsCtx = document.getElementById('eventsChart').getContext('2d');
         new Chart(eventsCtx, {
             type: 'doughnut',
             data: {
-                labels: [{% for item in events_by_type %}'{{ item.type }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                labels: eventsLabels,
                 datasets: [{
-                    data: [{% for item in events_by_type %}{{ item.count }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    data: eventsData,
                     backgroundColor: [
                         appleColors.blue,
                         appleColors.purple,
@@ -777,9 +689,9 @@
         new Chart(participantsCtx, {
             type: 'doughnut',
             data: {
-                labels: [{% for item in participants_by_type %}'{{ item.type.title() }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                labels: participantsLabels,
                 datasets: [{
-                    data: [{% for item in participants_by_type %}{{ item.count }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    data: participantsData,
                     backgroundColor: [appleColors.green, appleColors.blue],
                     borderWidth: 0,
                     cutout: '60%'
@@ -806,10 +718,10 @@
         new Chart(dutiesCtx, {
             type: 'bar',
             data: {
-                labels: [{% for item in duties_by_type %}'{{ item.duty_type }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                labels: dutiesLabels,
                 datasets: [{
                     label: 'Duties',
-                    data: [{% for item in duties_by_type %}{{ item.count }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    data: dutiesData,
                     backgroundColor: appleColors.purple,
                     borderRadius: 8,
                     borderSkipped: false
@@ -844,10 +756,10 @@
         new Chart(monthlyCtx, {
             type: 'line',
             data: {
-                labels: [{% for item in monthly_events %}'{{ item.month }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                labels: monthlyLabels,
                 datasets: [{
                     label: 'Events',
-                    data: [{% for item in monthly_events %}{{ item.count }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    data: monthlyData,
                     borderColor: appleColors.orange,
                     backgroundColor: appleColors.orange + '20',
                     fill: true,

@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendar - EvenZa</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+{% extends "base.html" %}
+
+{% block title %}Calendar - EvenZa{% endblock %}
+
+{% block content %}
     <style>
         * {
             margin: 0;
@@ -734,7 +732,6 @@
                 </div>
             </div>
         </div>
-    </nav>
     <div class="calendar-container">
         <div class="container">
             <div class="calendar-header fade-in">
@@ -904,5 +901,4 @@
         `;
         document.head.appendChild(style);
     </script>
-</body>
-</html>
+{% endblock %}

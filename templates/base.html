@@ -63,6 +63,23 @@
         }
         .user-avatar:hover { background: #e5e5ea; }
         .user-avatar i { font-size: 20px; color: #007aff; }
+        
+        /* Ensure dropdown appears above fixed navbar */
+        .dropdown-menu {
+            z-index: 1050 !important;
+            margin-top: 8px !important;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+        .dropdown-toggle {
+            background: none;
+            border: none;
+            padding: 0;
+            outline: none;
+        }
+        .dropdown-toggle:focus {
+            box-shadow: none;
+        }
     </style>
 </head>
 <body>
@@ -101,12 +118,12 @@
             <div class="nav-user">
                 {% if session.user_id %}
                     <div class="dropdown">
-                        <button class="btn btn-link dropdown-toggle text-decoration-none" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="user-avatar d-inline-flex align-items-center">
+                        <a class="dropdown-toggle d-flex align-items-center text-decoration-none" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="user-avatar">
                                 <i class="fas fa-user-circle"></i>
-                                <span class="ms-2 text-dark fw-medium">{{ session.username }}</span>
                             </div>
-                        </button>
+                            <span class="ms-2 text-dark fw-medium">{{ session.username }}</span>
+                        </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('logout') }}">
                                 <i class="fas fa-sign-out-alt me-2"></i>Logout
@@ -140,6 +157,15 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Ensure dropdown initializes properly
+        document.addEventListener('DOMContentLoaded', function() {
+            var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
+            var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
+                return new bootstrap.Dropdown(dropdownToggleEl);
+            });
+        });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

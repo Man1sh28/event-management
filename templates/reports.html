@@ -1,9 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports & Analytics - EvenZa</title>
+{% extends "base.html" %}
+
+{% block title %}Reports & Analytics - EvenZa{% endblock %}
+
+{% block content %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * {
@@ -701,8 +700,6 @@
                 </div>
             </div>
         </div>
-
-    
         <div class="export-section">
             <h3 class="export-title">Export Data</h3>
             <div class="export-buttons">
@@ -893,5 +890,4 @@
         link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
         document.head.appendChild(link);
     </script>
-</body>
-</html>
+{% endblock %}

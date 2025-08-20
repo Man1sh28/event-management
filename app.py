@@ -689,7 +689,7 @@ def export_data():
         elif export_type == 'duties':
             data = conn.execute('''
                 SELECT d.id, d.duty_type, d.duty_date, d.start_time, d.end_time, 
-                       d.location, d.description, d.notes, d.status, d.assigned_at,
+                       d.location, d.description, d.notes, d.assigned_at,
                        e.name as event_name, e.event_date as event_date,
                        dp.name as person_name, dp.designation, dp.school
                 FROM duties d

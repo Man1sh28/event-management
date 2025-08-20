@@ -737,14 +737,27 @@
             indigo: '#5AC8FA'
         };
 
+        // Prepare data arrays
+        const eventsLabels = {{ events_by_type|map(attribute='type')|list|tojson }};
+        const eventsData = {{ events_by_type|map(attribute='count')|list|tojson }};
+        
+        const participantsLabels = {{ participants_by_type|map(attribute='type')|map('title')|list|tojson }};
+        const participantsData = {{ participants_by_type|map(attribute='count')|list|tojson }};
+        
+        const dutiesLabels = {{ duties_by_type|map(attribute='duty_type')|list|tojson }};
+        const dutiesData = {{ duties_by_type|map(attribute='count')|list|tojson }};
+        
+        const monthlyLabels = {{ monthly_events|map(attribute='month')|list|tojson }};
+        const monthlyData = {{ monthly_events|map(attribute='count')|list|tojson }};
+
         // Events by Type Chart
         const eventsCtx = document.getElementById('eventsChart').getContext('2d');
         new Chart(eventsCtx, {
             type: 'doughnut',
             data: {
-                labels: [{% for item in events_by_type %}'{{ item.type }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                labels: eventsLabels,
                 datasets: [{
-                    data: [{% for item in events_by_type %}{{ item.count }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    data: eventsData,
                     backgroundColor: [
                         appleColors.blue,
                         appleColors.purple,
@@ -778,9 +791,9 @@
         new Chart(participantsCtx, {
             type: 'doughnut',
             data: {
-                labels: [{% for item in participants_by_type %}'{{ item.type.title() }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                labels: participantsLabels,
                 datasets: [{
-                    data: [{% for item in participants_by_type %}{{ item.count }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    data: participantsData,
                     backgroundColor: [appleColors.green, appleColors.blue],
                     borderWidth: 0,
                     cutout: '60%'
@@ -807,10 +820,10 @@
         new Chart(dutiesCtx, {
             type: 'bar',
             data: {
-                labels: [{% for item in duties_by_type %}'{{ item.duty_type }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                labels: dutiesLabels,
                 datasets: [{
                     label: 'Duties',
-                    data: [{% for item in duties_by_type %}{{ item.count }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    data: dutiesData,
                     backgroundColor: appleColors.purple,
                     borderRadius: 8,
                     borderSkipped: false
@@ -845,10 +858,10 @@
         new Chart(monthlyCtx, {
             type: 'line',
             data: {
-                labels: [{% for item in monthly_events %}'{{ item.month }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                labels: monthlyLabels,
                 datasets: [{
                     label: 'Events',
-                    data: [{% for item in monthly_events %}{{ item.count }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    data: monthlyData,
                     borderColor: appleColors.orange,
                     backgroundColor: appleColors.orange + '20',
                     fill: true,

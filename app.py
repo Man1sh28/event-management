@@ -4,6 +4,7 @@ import os
 from datetime import datetime, date, timedelta
 import calendar
 import json
+from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -89,6 +90,15 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Please login to access this page', 'error')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 def get_calendar_data(year, month):
     cal = calendar.monthcalendar(year, month)
     month_name = calendar.month_name[month]
@@ -128,6 +138,7 @@ def get_calendar_data(year, month):
     }
 
 @app.route('/calendar')
+@login_required
 def calendar_view():
     year = int(request.args.get('year', datetime.now().year))
     month = int(request.args.get('month', datetime.now().month))
@@ -136,6 +147,7 @@ def calendar_view():
     return render_template('calendar.html', **calendar_data)
 
 @app.route('/calendar/<int:year>/<int:month>/<int:day>')
+@login_required
 def day_events(year, month, day):
     selected_date = date(year, month, day)
     
@@ -153,6 +165,7 @@ def day_events(year, month, day):
                          year=year, month=month, day=day)
 
 @app.route('/calendar/add_event', methods=['GET', 'POST'])
+@login_required
 def add_calendar_event():
     if request.method == 'POST':
         name = request.form['name']
@@ -196,6 +209,7 @@ def index():
     return render_template('index.html')
 
 @app.route('/dashboard')
+@login_required
 def dashboard():
     conn = get_db_connection()
     
@@ -221,6 +235,7 @@ def dashboard():
                          upcoming_events=upcoming_events)
 
 @app.route('/events')
+@login_required
 def events():
     conn = get_db_connection()
     filter_type = request.args.get('filter', 'all')
@@ -246,6 +261,7 @@ def events():
     return render_template('events.html', events=events, filter_type=filter_type, search=search)
 
 @app.route('/events/add', methods=['GET', 'POST'])
+@login_required
 def add_event():
     if request.method == 'POST':
         name = request.form['name']
@@ -274,6 +290,7 @@ def add_event():
     return render_template('add_event.html')
 
 @app.route('/events/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
 def edit_event(id):
     conn = get_db_connection()
     event = conn.execute('SELECT * FROM events WHERE id = ?', (id,)).fetchone()
@@ -305,6 +322,7 @@ def edit_event(id):
     return render_template('edit_event.html', event=event)
 
 @app.route('/events/<int:id>/delete', methods=['POST'])
+@login_required
 def delete_event(id):
     conn = get_db_connection()
     conn.execute('DELETE FROM events WHERE id = ?', (id,))
@@ -315,6 +333,7 @@ def delete_event(id):
     return redirect(url_for('events'))
 
 @app.route('/participants')
+@login_required
 def participants():
     conn = get_db_connection()
     search = request.args.get('search', '')
@@ -332,6 +351,7 @@ def participants():
     return render_template('participants.html', participants=participants, search=search)
 
 @app.route('/participants/add', methods=['GET', 'POST'])
+@login_required
 def add_participant():
     if request.method == 'POST':
         unique_id = request.form['unique_id']
@@ -361,6 +381,7 @@ def add_participant():
     return render_template('add_participant.html')
 
 @app.route('/participants/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
 def edit_participant(id):
     conn = get_db_connection()
     participant = conn.execute('SELECT * FROM participants WHERE id = ?', (id,)).fetchone()
@@ -393,6 +414,7 @@ def edit_participant(id):
     return render_template('edit_participant.html', participant=participant)
 
 @app.route('/participants/<int:id>/delete', methods=['POST'])
+@login_required
 def delete_participant(id):
     conn = get_db_connection()
     conn.execute('DELETE FROM participants WHERE id = ?', (id,))
@@ -403,6 +425,7 @@ def delete_participant(id):
     return redirect(url_for('participants'))
 
 @app.route('/duties')
+@login_required
 def duties():
     conn = get_db_connection()
     
@@ -424,6 +447,7 @@ def duties():
                          duty_personnel=duty_personnel)
 
 @app.route('/duties/assign', methods=['GET', 'POST'])
+@login_required
 def assign_duty():
     if request.method == 'POST':
         event_id = request.form['event_id']
@@ -471,10 +495,12 @@ def assign_duty():
     return render_template('add_duty.html', events=events)
 
 @app.route('/duties/add', methods=['GET', 'POST'])
+@login_required
 def add_duty():
     return assign_duty()
 
 @app.route('/duties/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
 def edit_duty(id):
     conn = get_db_connection()
     duty = conn.execute('SELECT * FROM duties WHERE id = ?', (id,)).fetchone()
@@ -524,6 +550,7 @@ def edit_duty(id):
     return render_template('edit_duty.html', duty=duty, events=events, duty_personnel=duty_personnel)
 
 @app.route('/duties/<int:id>/delete', methods=['POST'])
+@login_required
 def delete_duty(id):
     conn = get_db_connection()
     conn.execute('DELETE FROM duties WHERE id = ?', (id,))
@@ -534,6 +561,7 @@ def delete_duty(id):
     return redirect(url_for('duties'))
 
 @app.route('/api/events')
+@login_required
 def api_events():
     conn = get_db_connection()
     events = conn.execute('SELECT * FROM events ORDER BY event_date').fetchall()
@@ -542,6 +570,7 @@ def api_events():
     return jsonify([dict(event) for event in events])
 
 @app.route('/api/participants')
+@login_required
 def api_participants():
     conn = get_db_connection()
     participants = conn.execute('SELECT * FROM participants').fetchall()
@@ -550,6 +579,7 @@ def api_participants():
     return jsonify([dict(participant) for participant in participants])
 
 @app.route('/api/duties')
+@login_required
 def api_duties():
     conn = get_db_connection()
     duties = conn.execute('''
@@ -619,6 +649,7 @@ def register():
     return render_template('register.html')
 
 @app.route('/reports')
+@login_required
 def reports():
     conn = get_db_connection()
     
@@ -667,6 +698,7 @@ def reports():
                          duty_stats=duty_stats)
 
 @app.route('/reports/export')
+@login_required
 def export_reports():
     import csv
     from io import StringIO
@@ -720,6 +752,7 @@ def export_reports():
     return response
 
 @app.route('/export/events')
+@login_required
 def export_events():
     import csv
     from io import StringIO
@@ -743,6 +776,7 @@ def export_events():
     return response
 
 @app.route('/export/participants')
+@login_required
 def export_participants():
     import csv
     from io import StringIO
@@ -766,6 +800,7 @@ def export_participants():
     return response
 
 @app.route('/export/duties')
+@login_required
 def export_duties():
     import csv
     from io import StringIO
@@ -795,6 +830,7 @@ def export_duties():
     return response
 
 @app.route('/export/teachers')
+@login_required
 def export_teachers():
     import csv
     from io import StringIO
@@ -821,6 +857,7 @@ def export_teachers():
     return response
 
 @app.route('/delete_all_data', methods=['POST'])
+@login_required
 def delete_all_data():
     try:
         conn = get_db_connection()

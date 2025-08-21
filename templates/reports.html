@@ -246,12 +246,14 @@
 
         .stat-card.green .stat-number {
             background: linear-gradient(135deg, var(--apple-green), #30D158);
+            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .stat-card.orange .stat-number {
             background: linear-gradient(135deg, var(--apple-orange), #FF9F0A);
+            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -576,41 +578,18 @@
         </div>
     </div>
 
-    <div class="container">
-    
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">📅</div>
-                <div class="stat-number">{{ stats.total_events }}</div>
-                <div class="stat-label">Total Events</div>
-            </div>
-            <div class="stat-card green">
-                <div class="stat-icon">👥</div>
-                <div class="stat-number">{{ stats.total_participants }}</div>
-                <div class="stat-label">Total Participants</div>
-            </div>
-            <div class="stat-card orange">
-                <div class="stat-icon">📋</div>
-                <div class="stat-number">{{ stats.total_duties }}</div>
-                <div class="stat-label">Total Duties</div>
-            </div>
-        </div>
-
-    
-        
+    <div class="container">   
         <div class="export-section">
             <h3 class="export-title">Export Data</h3>
             <div class="export-buttons">
-                <a href="{{ url_for('export_data') }}?type=events" class="export-btn primary">
+                <a href="{{ url_for('export_events') }}" class="export-btn primary">
                     <span>⬇️</span> Export Events
                 </a>
-                <a href="{{ url_for('export_data') }}?type=participants" class="export-btn success">
+                <a href="{{ url_for('export_participants') }}" class="export-btn success">
                     <span>⬇️</span> Export Participants
                 </a>
-                <a href="{{ url_for('export_data') }}?type=teachers" class="export-btn warning">
-                    <span>⬇️</span> Export Teachers
-                </a>
-                <a href="{{ url_for('export_data') }}?type=duties" class="export-btn info">
+
+                <a href="{{ url_for('export_duties') }}" class="export-btn info">
                     <span>⬇️</span> Export Duties
                 </a>
             </div>
@@ -618,12 +597,8 @@
     </div>
 
     <script>
-        // Chart.js default configuration
-        Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        Chart.defaults.font.size = 12;
-        Chart.defaults.color = '#1C1C1E';
-
-        // Apple-inspired color palette
+       
+        
         const appleColors = {
             blue: '#007AFF',
             purple: '#5856D6',
@@ -635,166 +610,7 @@
             indigo: '#5AC8FA'
         };
 
-        // Prepare data arrays
-        const eventsLabels = {{ events_by_type|map(attribute='type')|list|tojson }};
-        const eventsData = {{ events_by_type|map(attribute='count')|list|tojson }};
-        
-        const participantsLabels = {{ participants_by_type|map(attribute='type')|map('title')|list|tojson }};
-        const participantsData = {{ participants_by_type|map(attribute='count')|list|tojson }};
-        
-        const dutiesLabels = {{ duties_by_type|map(attribute='duty_type')|list|tojson }};
-        const dutiesData = {{ duties_by_type|map(attribute='count')|list|tojson }};
-        
-        const monthlyLabels = {{ monthly_events|map(attribute='month')|list|tojson }};
-        const monthlyData = {{ monthly_events|map(attribute='count')|list|tojson }};
-
-        // Events by Type Chart
-        const eventsCtx = document.getElementById('eventsChart').getContext('2d');
-        new Chart(eventsCtx, {
-            type: 'doughnut',
-            data: {
-                labels: eventsLabels,
-                datasets: [{
-                    data: eventsData,
-                    backgroundColor: [
-                        appleColors.blue,
-                        appleColors.purple,
-                        appleColors.green,
-                        appleColors.orange,
-                        appleColors.red,
-                        appleColors.pink
-                    ],
-                    borderWidth: 0,
-                    cutout: '60%'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 20,
-                            usePointStyle: true,
-                            pointStyle: 'circle'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Participants by Type Chart
-        const participantsCtx = document.getElementById('participantsChart').getContext('2d');
-        new Chart(participantsCtx, {
-            type: 'doughnut',
-            data: {
-                labels: participantsLabels,
-                datasets: [{
-                    data: participantsData,
-                    backgroundColor: [appleColors.green, appleColors.blue],
-                    borderWidth: 0,
-                    cutout: '60%'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 20,
-                            usePointStyle: true,
-                            pointStyle: 'circle'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Duties by Type Chart
-        const dutiesCtx = document.getElementById('dutiesChart').getContext('2d');
-        new Chart(dutiesCtx, {
-            type: 'bar',
-            data: {
-                labels: dutiesLabels,
-                datasets: [{
-                    label: 'Duties',
-                    data: dutiesData,
-                    backgroundColor: appleColors.purple,
-                    borderRadius: 8,
-                    borderSkipped: false
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
-            }
-        });
-
-        // Monthly Events Chart
-        const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
-        new Chart(monthlyCtx, {
-            type: 'line',
-            data: {
-                labels: monthlyLabels,
-                datasets: [{
-                    label: 'Events',
-                    data: monthlyData,
-                    borderColor: appleColors.orange,
-                    backgroundColor: appleColors.orange + '20',
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: appleColors.orange,
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 6,
-                    pointHoverRadius: 8
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
-            }
-        });
-
+      
         // Add FontAwesome CDN
         const link = document.createElement('link');
         link.rel = 'stylesheet';

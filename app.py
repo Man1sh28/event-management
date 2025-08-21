@@ -721,6 +721,107 @@ def export_reports():
     
     return response
 
+@app.route('/export/events')
+def export_events():
+    import csv
+    from io import StringIO
+    from flask import make_response
+    
+    conn = get_db_connection()
+    events = conn.execute('SELECT * FROM events ORDER BY event_date').fetchall()
+    conn.close()
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['ID', 'Name', 'Type', 'Date', 'Start Time', 'End Time', 'Venue', 'Host School', 'Description'])
+    for event in events:
+        writer.writerow([event['id'], event['name'], event['type'], event['event_date'], 
+                        event['start_time'], event['end_time'], event['venue'], 
+                        event['host_school'], event['description']])
+    
+    response = make_response(output.getvalue())
+    response.headers['Content-Disposition'] = 'attachment; filename=events.csv'
+    response.headers['Content-Type'] = 'text/csv'
+    return response
+
+@app.route('/export/participants')
+def export_participants():
+    import csv
+    from io import StringIO
+    from flask import make_response
+    
+    conn = get_db_connection()
+    participants = conn.execute('SELECT * FROM participants ORDER BY name').fetchall()
+    conn.close()
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['ID', 'Unique ID', 'Name', 'Type', 'Class/Dept', 'School', 'Contact'])
+    for participant in participants:
+        writer.writerow([participant['id'], participant['unique_id'], participant['name'], 
+                        participant['type'], participant['class_dept'], participant['school'], 
+                        participant['contact']])
+    
+    response = make_response(output.getvalue())
+    response.headers['Content-Disposition'] = 'attachment; filename=participants.csv'
+    response.headers['Content-Type'] = 'text/csv'
+    return response
+
+@app.route('/export/duties')
+def export_duties():
+    import csv
+    from io import StringIO
+    from flask import make_response
+    
+    conn = get_db_connection()
+    duties = conn.execute('''
+        SELECT d.*, e.name as event_name, dp.name as person_name
+        FROM duties d
+        JOIN events e ON d.event_id = e.id
+        JOIN duty_personnel dp ON d.duty_person_id = dp.id
+        ORDER BY d.duty_date
+    ''').fetchall()
+    conn.close()
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['ID', 'Event Name', 'Person Name', 'Duty Type', 'Date', 'Start Time', 'End Time', 'Location'])
+    for duty in duties:
+        writer.writerow([duty['id'], duty['event_name'], duty['person_name'], 
+                        duty['duty_type'], duty['duty_date'], 
+                        duty['start_time'], duty['end_time'], duty['location']])
+    
+    response = make_response(output.getvalue())
+    response.headers['Content-Disposition'] = 'attachment; filename=duties.csv'
+    response.headers['Content-Type'] = 'text/csv'
+    return response
+
+@app.route('/export/teachers')
+def export_teachers():
+    import csv
+    from io import StringIO
+    from flask import make_response
+    
+    conn = get_db_connection()
+    teachers = conn.execute('''
+        SELECT * FROM duty_personnel 
+        WHERE type = 'Teacher' OR type = 'Staff'
+        ORDER BY name
+    ''').fetchall()
+    conn.close()
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['ID', 'Name', 'Type', 'Contact', 'Department'])
+    for teacher in teachers:
+        writer.writerow([teacher['id'], teacher['name'], teacher['type'], 
+                        teacher['contact'], teacher['department']])
+    
+    response = make_response(output.getvalue())
+    response.headers['Content-Disposition'] = 'attachment; filename=teachers.csv'
+    response.headers['Content-Type'] = 'text/csv'
+    return response
+
 @app.route('/delete_all_data', methods=['POST'])
 def delete_all_data():
     conn = get_db_connection()
@@ -737,4 +838,4 @@ def delete_all_data():
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    app.run(debug=True, port=8001)

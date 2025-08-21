@@ -193,9 +193,7 @@ def add_calendar_event():
 
 @app.route('/')
 def index():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    return dashboard()
+    return render_template('index.html')
 
 @app.route('/dashboard')
 def dashboard():

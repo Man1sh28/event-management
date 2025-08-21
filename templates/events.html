@@ -437,9 +437,9 @@
 </style>
 
 <script>
-    // Add smooth scrolling and form interactions
+  
     document.addEventListener('DOMContentLoaded', function() {
-        // Auto-submit filter changes
+      
         const filterSelect = document.querySelector('select[name="filter"]');
         if (filterSelect) {
             filterSelect.addEventListener('change', function() {
@@ -447,7 +447,7 @@
             });
         }
 
-        // Add staggered animation to cards
+        
         const cards = document.querySelectorAll('.event-card');
         cards.forEach((card, index) => {
             card.style.animationDelay = `${index * 0.1}s`;

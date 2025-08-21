@@ -706,12 +706,12 @@
                 
                 if (doubleConfirmation === 'DELETE') {
                     // Make API call to delete all data
-                    fetch('/delete-all-data', { 
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    })
+                    fetch('/delete_all_data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {

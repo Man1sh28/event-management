@@ -824,18 +824,20 @@ def export_teachers():
 
 @app.route('/delete_all_data', methods=['POST'])
 def delete_all_data():
-    conn = get_db_connection()
-    conn.execute('DELETE FROM duties')
-    conn.execute('DELETE FROM duty_personnel')
-    conn.execute('DELETE FROM participants')
-    conn.execute('DELETE FROM events')
-    conn.execute('DELETE FROM users')
-    conn.commit()
-    conn.close()
-    
-    flash('All data has been deleted successfully!', 'success')
-    return redirect(url_for('dashboard'))
+    try:
+        conn = get_db_connection()
+        conn.execute('DELETE FROM duties')
+        conn.execute('DELETE FROM duty_personnel')
+        conn.execute('DELETE FROM participants')
+        conn.execute('DELETE FROM events')
+        conn.execute('DELETE FROM users')
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'All data has been deleted successfully!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 if __name__ == "__main__":
     init_db()
-    port = int(os.environ.get("PORT", 5000))  
+    port = int(os.environ.get("PORT", 8000))  
     app.run(host="0.0.0.0", port=port, debug=True)

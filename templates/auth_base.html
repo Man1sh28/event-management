@@ -15,11 +15,12 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
             padding: 20px;
             position: relative;
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
         
         /* Floating background elements */
@@ -60,6 +61,7 @@
             width: 100%;
             max-width: 420px;
             z-index: 1;
+            margin: 40px 0;
         }
         
         .auth-card {

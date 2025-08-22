@@ -206,7 +206,7 @@ def add_calendar_event():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('login.html')
 
 @app.route('/dashboard')
 @login_required

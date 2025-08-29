@@ -1,0 +1,11 @@
+{
+  "event_name": null,
+  "location": null,
+  "date": null,
+  "time": null,
+  "confidence": "low",
+  "additional_info": null,
+  "error": "Error processing image: 400 API key not valid. Please pass a valid API key. [reason: \"API_KEY_INVALID\"\ndomain: \"googleapis.com\"\nmetadata {\n  key: \"service\"\n  value: \"generativelanguage.googleapis.com\"\n}\n, locale: \"en-US\"\nmessage: \"API key not valid. Please pass a valid API key.\"\n]",
+  "extracted_at": "2025-08-29T15:40:57.097413",
+  "source_image": "1.jpeg"
+}

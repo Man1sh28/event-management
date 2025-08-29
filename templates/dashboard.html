@@ -765,11 +765,14 @@
             <div class="apple-card fade-in">
                 <div class="card-header">
                     <h2 class="card-title">
-                        <i class="fas fa-bolt"></i>Quick Actions
+                        <i class="fas fa-camera"></i>AI Event Scanner
                     </h2>
                 </div>
                 <div class="card-body">
                     <div class="action-buttons">
+                        <button class="action-btn" onclick="openImageScanner()">
+                            <i class="fas fa-camera"></i>Scan Event from Image
+                        </button>
                         <a href="{{ url_for('add_event') }}" class="action-btn">
                             <i class="fas fa-plus"></i>Add New Event
                         </a>
@@ -1199,5 +1202,167 @@
             }
         `;
         document.head.appendChild(style);
+        // Image Scanner Functions
+        function openImageScanner() {
+            showModal({
+                title: '📸 AI Event Scanner',
+                message: 'Upload an image of an event poster, brochure, or flyer to automatically extract event details using AI.',
+                type: 'info',
+                showCancel: false,
+                confirmText: 'Choose Image',
+                onConfirm: () => {
+                    closeModal();
+                    triggerImageUpload();
+                }
+            });
+        }
+
+        function triggerImageUpload() {
+            // Create hidden file input
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.style.display = 'none';
+            fileInput.onchange = handleImageUpload;
+            document.body.appendChild(fileInput);
+            fileInput.click();
+            document.body.removeChild(fileInput);
+        }
+
+        async function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Show loading modal
+            showModal({
+                title: '🔍 Processing Image...',
+                message: 'AI is analyzing your image to extract event details. This may take a few moments.',
+                type: 'info',
+                showCancel: false,
+                confirmText: 'Please wait...'
+            });
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const response = await fetch('/api/scan-event', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    closeModal();
+                    showEventPreview(result.event);
+                } else {
+                    closeModal();
+                    showModal({
+                        title: '❌ Processing Error',
+                        message: result.error || 'Failed to process the image. Please try again with a clearer image.',
+                        type: 'error'
+                    });
+                }
+            } catch (error) {
+                closeModal();
+                showModal({
+                    title: '❌ Network Error',
+                    message: 'Failed to connect to the server. Please check your connection and try again.',
+                    type: 'error'
+                });
+            }
+        }
+
+        function showEventPreview(eventData) {
+            const previewHtml = `
+                <div style="text-align: left; max-width: 500px;">
+                    <h3 style="color: #007aff; margin-bottom: 16px;">📅 Event Details Found</h3>
+                    <div style="margin-bottom: 12px;">
+                        <strong>Event Name:</strong> ${eventData.name || 'Not specified'}
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <strong>Location:</strong> ${eventData.venue || 'Not specified'}
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <strong>Date:</strong> ${eventData.event_date || 'Not specified'}
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <strong>Time:</strong> ${eventData.start_time || 'Not specified'}
+                    </div>
+                    ${eventData.description ? `<div style="margin-bottom: 12px;"><strong>Additional Info:</strong> ${eventData.description}</div>` : ''}
+                    <div style="margin-bottom: 16px;">
+                        <strong>Confidence:</strong> <span style="color: ${eventData.confidence === 'high' ? '#34c759' : eventData.confidence === 'medium' ? '#ff9500' : '#ff3b30'}">${eventData.confidence || 'unknown'}</span>
+                    </div>
+                    <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
+                        <button onclick="addScannedEvent(${JSON.stringify(eventData).replace(/"/g, '&quot;')})" class="action-btn" style="padding: 12px 24px; font-size: 16px;">
+                            <i class="fas fa-plus"></i> Add to Events
+                        </button>
+                        <button onclick="closeModal()" class="action-btn secondary" style="padding: 12px 24px; font-size: 16px;">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            showModal({
+                title: '✅ Event Found',
+                message: previewHtml,
+                type: 'success',
+                showCancel: false,
+                confirmText: 'Continue'
+            });
+        }
+
+        function addScannedEvent(eventData) {
+            closeModal();
+            
+            // Redirect to add_event page with pre-filled data
+            const params = new URLSearchParams();
+            if (eventData.name) params.append('name', eventData.name);
+            if (eventData.venue) params.append('venue', eventData.venue);
+            if (eventData.event_date) params.append('date', eventData.event_date);
+            if (eventData.start_time) params.append('time', eventData.start_time);
+            
+            window.location.href = `/add_event?${params.toString()}`;
+        }
+
+        // CSS for image scanner
+        const scannerStyle = document.createElement('style');
+        scannerStyle.textContent = `
+            .image-upload-zone {
+                border: 2px dashed #007aff;
+                border-radius: 12px;
+                padding: 40px;
+                text-align: center;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                background: rgba(0, 122, 255, 0.05);
+            }
+            .image-upload-zone:hover {
+                background: rgba(0, 122, 255, 0.1);
+                border-color: #0056cc;
+            }
+            .image-upload-zone.dragover {
+                background: rgba(0, 122, 255, 0.15);
+                border-color: #007aff;
+                transform: scale(1.02);
+            }
+            .upload-icon {
+                font-size: 48px;
+                color: #007aff;
+                margin-bottom: 16px;
+            }
+            .upload-text {
+                font-size: 18px;
+                color: #1d1d1f;
+                margin-bottom: 8px;
+            }
+            .upload-subtext {
+                font-size: 14px;
+                color: #86868b;
+            }
+        `;
+        document.head.appendChild(scannerStyle);
     </script>
 {% endblock %}

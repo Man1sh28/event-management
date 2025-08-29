@@ -6,6 +6,8 @@ import calendar
 import json
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+import tempfile
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'
@@ -872,6 +874,65 @@ def delete_all_data():
         return jsonify({'success': True, 'message': 'All data has been deleted successfully!'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+@app.route('/api/scan-event', methods=['POST'])
+@login_required
+def scan_event():
+    """
+    API endpoint to scan event details from uploaded image
+    Uses EventExtractor from ai-event.py
+    """
+    try:
+        # Import EventExtractor here to avoid circular imports
+        import sys
+        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+        from ai_event import EventExtractor
+        
+        if 'image' not in request.files:
+            return jsonify({'error': 'No image file provided'}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp_file:
+            file.save(tmp_file.name)
+            temp_path = tmp_file.name
+        
+        try:
+            # Initialize EventExtractor
+            extractor = EventExtractor()
+            
+            # Extract event details
+            result = extractor.extract_event_info(temp_path)
+            
+            # Clean up temporary file
+            os.unlink(temp_path)
+            
+            if result.get('error'):
+                return jsonify({'error': result['error']}), 500
+            
+            # Format the response for the frontend
+            event_data = {
+                'name': result.get('event_name', 'Untitled Event'),
+                'venue': result.get('location', ''),
+                'event_date': result.get('date', ''),
+                'start_time': result.get('time', ''),
+                'description': result.get('additional_info', ''),
+                'confidence': result.get('confidence', 'medium')
+            }
+            
+            return jsonify({'success': True, 'event': event_data})
+            
+        except Exception as e:
+            # Clean up temporary file
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            return jsonify({'error': f'Processing error: {str(e)}'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", 8000))  

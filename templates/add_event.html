@@ -23,29 +23,29 @@
                     <form method="POST" id="eventForm">
                         <div class="form-field">
                             <label for="name">Event Name *</label>
-                            <input type="text" id="name" name="name" required>
+                            <input type="text" id="name" name="name" value="{{ request.args.get('name', '') }}" required>
                         </div>
                         
                         <div class="form-field">
                             <label for="type">Event Type *</label>
                             <select id="type" name="type" required>
                                 <option value="">Select Type</option>
-                                <option value="sports">Sports</option>
-                                <option value="cultural">Cultural</option>
-                                <option value="academic">Academic</option>
-                                <option value="technical">Technical</option>
-                                <option value="other">Other</option>
+                                <option value="sports" {% if request.args.get('type') == 'sports' %}selected{% endif %}>Sports</option>
+                                <option value="cultural" {% if request.args.get('type') == 'cultural' %}selected{% endif %}>Cultural</option>
+                                <option value="academic" {% if request.args.get('type') == 'academic' %}selected{% endif %}>Academic</option>
+                                <option value="technical" {% if request.args.get('type') == 'technical' %}selected{% endif %}>Technical</option>
+                                <option value="other" {% if request.args.get('type') == 'other' %}selected{% endif %}>Other</option>
                             </select>
                         </div>
                         
                         <div class="form-row">
                             <div class="form-field">
                                 <label for="event_date">Date *</label>
-                                <input type="date" id="event_date" name="event_date" required>
+                                <input type="date" id="event_date" name="event_date" value="{{ request.args.get('event_date', '') }}" required>
                             </div>
                             <div class="form-field">
                                 <label for="start_time">Start Time *</label>
-                                <input type="time" id="start_time" name="start_time" required>
+                                <input type="time" id="start_time" name="start_time" value="{{ request.args.get('start_time', '') }}" required>
                             </div>
                             <div class="form-field">
                                 <label for="end_time">End Time *</label>
@@ -55,12 +55,12 @@
                         
                         <div class="form-field">
                             <label for="venue">Venue *</label>
-                            <input type="text" id="venue" name="venue" required>
+                            <input type="text" id="venue" name="venue" value="{{ request.args.get('venue', '') }}" required>
                         </div>
                         
                         <div class="form-field">
                             <label for="host_school">Host School *</label>
-                            <input type="text" id="host_school" name="host_school" required>
+                            <input type="text" id="host_school" name="host_school" value="{{ request.args.get('host_school', '') }}" required>
                         </div>
                         
                         <div class="form-field">
@@ -72,7 +72,7 @@
                         
                         <div class="form-field">
                             <label for="description">Description</label>
-                            <textarea id="description" name="description" rows="3"></textarea>
+                            <textarea id="description" name="description" rows="3">{{ request.args.get('description', '') }}</textarea>
                         </div>
                         
                         <div class="form-actions">
@@ -103,7 +103,11 @@
                             }
                         });
                         
-                        document.getElementById('event_date').valueAsDate = new Date();
+                        // Only set default date if no pre-filled date from URL
+                        const urlParams = new URLSearchParams(window.location.search);
+                        if (!urlParams.get('event_date')) {
+                            document.getElementById('event_date').valueAsDate = new Date();
+                        }
                     </script>
                 </div>
             </div>

@@ -1321,10 +1321,12 @@
             const params = new URLSearchParams();
             if (eventData.name) params.append('name', eventData.name);
             if (eventData.venue) params.append('venue', eventData.venue);
-            if (eventData.event_date) params.append('date', eventData.event_date);
-            if (eventData.start_time) params.append('time', eventData.start_time);
+            if (eventData.event_date) params.append('event_date', eventData.event_date);
+            if (eventData.start_time) params.append('start_time', eventData.start_time);
+            if (eventData.description) params.append('description', eventData.description);
+            params.append('host_school', 'Your School'); // Default value, user can change
             
-            window.location.href = `/add_event?${params.toString()}`;
+            window.location.href = `/events/add?${params.toString()}`;
         }
 
         // CSS for image scanner

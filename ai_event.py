@@ -6,7 +6,7 @@ from PIL import Image
 import argparse
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+
 load_dotenv()
 
 class EventExtractor:
@@ -32,7 +32,7 @@ class EventExtractor:
             dict: Extracted event information
         """
         try:
-            # Load and process the image
+  
             image = Image.open(image_path)
             
             # Create a detailed prompt for event information extraction
@@ -58,7 +58,7 @@ class EventExtractor:
             Be as accurate as possible and only extract information that is clearly visible in the image.
             """
             
-            # Generate content using Gemini
+       
             response = self.model.generate_content([prompt, image])
             
             # Parse the JSON response
@@ -82,7 +82,7 @@ class EventExtractor:
                 return event_info
                 
             except json.JSONDecodeError:
-                # If JSON parsing fails, return raw response
+              
                 return {
                     "event_name": None,
                     "location": None,
@@ -174,19 +174,18 @@ def main():
     
     args = parser.parse_args()
     
-    # Initialize the extractor (API key loaded from .env)
+    
     try:
         extractor = EventExtractor()
     except ValueError as e:
         print(f"Error: {e}")
         return
     
-    # Process images
+
     if len(args.images) == 1:
-        # Single image
+      
         result = extractor.extract_event_info(args.images[0])
-        
-        # Optionally save results
+
         if args.save:
             extractor.save_results(result, args.output)
     else:
@@ -197,7 +196,7 @@ def main():
         if args.save:
             extractor.save_results(results, args.output)
 
-# Example usage function for interactive use
+
 def interactive_example():
     """
     Interactive example for testing the script
@@ -205,7 +204,7 @@ def interactive_example():
     print("Event Information Extractor")
     print("="*30)
     
-    # Initialize extractor (API key from .env)
+
     try:
         extractor = EventExtractor()
         print("✓ API key loaded from .env file")
@@ -213,27 +212,26 @@ def interactive_example():
         print(f"Error: {e}")
         return
     
-    # Get image path
+   
     image_path = input("Enter the path to your image file: ").strip()
     if not os.path.exists(image_path):
         print(f"File not found: {image_path}")
         return
     
-    # Process image
+   
     print(f"\nProcessing {image_path}...")
     result = extractor.extract_event_info(image_path)
-    
-    # Ask if user wants to save
+  
     save_choice = input("\nWould you like to save these results to a JSON file? (y/n): ").strip().lower()
     if save_choice in ['y', 'yes']:
         output_file = f"event_info_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         extractor.save_results(result, output_file)
 
 if __name__ == "__main__":
-    # Check if running with command line arguments
+  
     import sys
     if len(sys.argv) > 1:
         main()
     else:
-        # Run interactive mode
+        
         interactive_example()

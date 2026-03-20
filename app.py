@@ -1119,6 +1119,105 @@ def scan_event():
     except Exception as e:
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
+@app.route('/api/search_students')
+@role_required(['admin', 'super_admin'])
+def search_students():
+    query = request.args.get('q', '').strip()
+    event_id = request.args.get('event_id', type=int)
+    
+    conn = get_db_connection()
+    
+    if query:
+        students = conn.execute(
+            "SELECT id, username FROM users WHERE role = 'student' AND username LIKE ? ORDER BY username LIMIT 20",
+            (f'%{query}%',)
+        ).fetchall()
+    else:
+        students = conn.execute(
+            "SELECT id, username FROM users WHERE role = 'student' ORDER BY username LIMIT 20"
+        ).fetchall()
+    
+    results = []
+    for s in students:
+        already_assigned = False
+        if event_id:
+            # Check if this user is already assigned as a participant to this event
+            participant = conn.execute(
+                "SELECT p.id FROM participants p JOIN participant_events pe ON p.id = pe.participant_id WHERE p.unique_id = ? AND pe.event_id = ?",
+                (f'user_{s["id"]}', event_id)
+            ).fetchone()
+            already_assigned = participant is not None
+        
+        results.append({
+            'id': s['id'],
+            'username': s['username'],
+            'already_assigned': already_assigned
+        })
+    
+    conn.close()
+    return jsonify(results)
+
+
+@app.route('/events/<int:id>/assign_participant', methods=['POST'])
+@role_required(['admin', 'super_admin'])
+def assign_participant(id):
+    user_id = request.form.get('user_id', type=int)
+    
+    if not user_id:
+        flash('No student selected', 'error')
+        return redirect(url_for('event_detail', id=id))
+    
+    conn = get_db_connection()
+    
+    # Check the event exists
+    event = conn.execute('SELECT * FROM events WHERE id = ?', (id,)).fetchone()
+    if not event:
+        conn.close()
+        flash('Event not found', 'error')
+        return redirect(url_for('events'))
+    
+    # Get the student user
+    user = conn.execute("SELECT * FROM users WHERE id = ? AND role = 'student'", (user_id,)).fetchone()
+    if not user:
+        conn.close()
+        flash('Student user not found', 'error')
+        return redirect(url_for('event_detail', id=id))
+    
+    unique_id = f'user_{user["id"]}'
+    
+    # Check if participant record already exists for this user
+    participant = conn.execute('SELECT * FROM participants WHERE unique_id = ?', (unique_id,)).fetchone()
+    
+    if participant:
+        participant_id = participant['id']
+    else:
+        # Create a participant record from the user account
+        cursor = conn.execute(
+            'INSERT INTO participants (unique_id, name, type, class_dept, school, contact, emergency_contact) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            (unique_id, user['username'], 'student', 'Student', 'Main School', '', '')
+        )
+        participant_id = cursor.lastrowid
+    
+    # Check if already assigned to this event
+    existing = conn.execute(
+        'SELECT * FROM participant_events WHERE participant_id = ? AND event_id = ?',
+        (participant_id, id)
+    ).fetchone()
+    
+    if existing:
+        conn.close()
+        flash(f'{user["username"]} is already assigned to this event', 'warning')
+        return redirect(url_for('event_detail', id=id))
+    
+    conn.execute('INSERT INTO participant_events (participant_id, event_id) VALUES (?, ?)',
+                (participant_id, id))
+    conn.commit()
+    conn.close()
+    
+    flash(f'{user["username"]} has been assigned as a participant!', 'success')
+    return redirect(url_for('event_detail', id=id))
+
+
 @app.route('/manage_users')
 @role_required(['super_admin'])
 def manage_users():

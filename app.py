@@ -94,6 +94,19 @@ def init_db():
             FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE
         )
     ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS announcements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            event_id INTEGER NOT NULL,
+            created_by INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
+            FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE CASCADE
+        )
+    ''')
     
     conn.commit()
     conn.close()
@@ -312,6 +325,77 @@ def events():
     conn.close()
     
     return render_template('events.html', events=events, filter_type=filter_type, search=search)
+
+@app.route('/events/<int:id>')
+@login_required
+def event_detail(id):
+    conn = get_db_connection()
+    event_row = conn.execute('SELECT * FROM events WHERE id = ?', (id,)).fetchone()
+    
+    if not event_row:
+        conn.close()
+        flash('Event not found', 'error')
+        return redirect(url_for('events'))
+    
+    event = dict(event_row)
+    
+    participants_rows = conn.execute('''
+        SELECT p.* 
+        FROM participants p 
+        JOIN participant_events pe ON p.id = pe.participant_id 
+        WHERE pe.event_id = ?
+    ''', (id,)).fetchall()
+    
+    duties_rows = conn.execute('''
+        SELECT d.*, dp.name as person_name, dp.designation
+        FROM duties d
+        JOIN duty_personnel dp ON d.duty_person_id = dp.id
+        WHERE d.event_id = ?
+    ''', (id,)).fetchall()
+    
+    announcements = conn.execute('''
+        SELECT a.*, u.username as author 
+        FROM announcements a 
+        JOIN users u ON a.created_by = u.id 
+        WHERE a.event_id = ?
+        ORDER BY a.created_at ASC
+    ''', (id,)).fetchall()
+    
+    conn.close()
+    
+    return render_template('event_detail.html', 
+                         event=event, 
+                         participants=participants_rows,
+                         duties=duties_rows,
+                         announcements=announcements)
+
+@app.route('/announcements/add', methods=['POST'])
+@role_required(['admin', 'super_admin'])
+def add_announcement():
+    title = request.form.get('title', 'Event Update')
+    content = request.form['content']
+    event_id = request.form['event_id']
+    user_id = session['user_id']
+    
+    conn = get_db_connection()
+    conn.execute('INSERT INTO announcements (title, content, event_id, created_by) VALUES (?, ?, ?, ?)',
+                (title, content, event_id, user_id))
+    conn.commit()
+    conn.close()
+    
+    flash('Message sent successfully!', 'success')
+    return redirect(url_for('event_detail', id=event_id))
+
+@app.route('/announcements/<int:id>/delete', methods=['POST'])
+@role_required(['admin', 'super_admin'])
+def delete_announcement(id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM announcements WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    
+    flash('Announcement deleted successfully!', 'success')
+    return redirect(request.referrer or url_for('dashboard'))
 
 @app.route('/events/add', methods=['GET', 'POST'])
 @role_required(['admin', 'super_admin'])

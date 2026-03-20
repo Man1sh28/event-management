@@ -505,25 +505,7 @@
             opacity: 0.5;
         }
 
-        /* Animations */
-        .fade-in {
-            opacity: 0;
-            transform: translateY(30px);
-            animation: fadeInUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-        }
-
-        @keyframes fadeInUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        
-        .fade-in:nth-child(1) { animation-delay: 0.1s; }
-        .fade-in:nth-child(2) { animation-delay: 0.2s; }
-        .fade-in:nth-child(3) { animation-delay: 0.3s; }
-        .fade-in:nth-child(4) { animation-delay: 0.4s; }
+        /* Removed redundant animation definitions */
 
        
         body {
@@ -739,7 +721,7 @@
                     {% if upcoming_events %}
                         <ul class="event-list">
                             {% for event in upcoming_events %}
-                                <li class="event-item">
+                                <li class="event-item" onclick="window.location.href='{{ url_for('event_detail', id=event.id) }}';" style="cursor: pointer;">
                                     <div class="event-header">
                                         <div class="event-name">{{ event.name }}</div>
                                         <div class="event-date">{{ event.event_date }}</div>
@@ -990,6 +972,11 @@
     </style>
 
     <script>
+        function toggleAnnouncementForm() {
+            const form = document.getElementById('announcement-form');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
         let currentModalConfig = null;
 
         // Modern modal system

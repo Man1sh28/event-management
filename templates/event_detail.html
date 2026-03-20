@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('events') }}">Events</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ event.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <!-- Event Info Column -->
+        <div class="col-lg-8">
+            <div class="apple-card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h1 class="h3 mb-0">{{ event.name }}</h1>
+                    <span class="badge bg-primary">{{ event.type }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center text-muted">
+                                <i class="fas fa-calendar me-2"></i>
+                                <span>{{ event.event_date }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center text-muted">
+                                <i class="fas fa-clock me-2"></i>
+                                <span>{{ event.start_time }} - {{ event.end_time }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center text-muted">
+                                <i class="fas fa-map-marker-alt me-2"></i>
+                                <span>{{ event.venue }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center text-muted">
+                                <i class="fas fa-school me-2"></i>
+                                <span>Host: {{ event.host_school }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold mb-3">Description</h5>
+                    <p class="text-dark">{{ event.description or 'No description provided.' }}</p>
+
+                    {% if event.participating_schools %}
+                    <h5 class="fw-bold mb-3 mt-4">Participating Schools</h5>
+                    <p class="text-dark">{{ event.participating_schools }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Participants & Duties Tabs -->
+            <div class="apple-card">
+                <ul class="nav nav-tabs mb-3" id="eventTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="participants-tab" data-bs-toggle="tab" data-bs-target="#participants" type="button" role="tab">Participants</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="duties-tab" data-bs-toggle="tab" data-bs-target="#duties" type="button" role="tab">Duties</button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="eventTabsContent">
+                    <div class="tab-pane fade show active" id="participants" role="tabpanel">
+                        {% if participants %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Class/Dept</th>
+                                        <th>School</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in participants %}
+                                    <tr>
+                                        <td>{{ p.name }}</td>
+                                        <td>{{ p.class_dept }}</td>
+                                        <td>{{ p.school }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center py-4">No participants assigned to this event.</p>
+                        {% endif %}
+                    </div>
+                    <div class="tab-pane fade" id="duties" role="tabpanel">
+                        {% if duties %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Assigned To</th>
+                                        <th>Duty Type</th>
+                                        <th>Location</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for d in duties %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ d.person_name }}</strong><br>
+                                            <small class="text-muted">{{ d.designation }}</small>
+                                        </td>
+                                        <td>{{ d.duty_type }}</td>
+                                        <td>{{ d.location }}</td>
+                                        <td>{{ d.start_time }} - {{ d.end_time }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center py-4">No duties assigned for this event.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Column -->
+        <div class="col-lg-4">
+            <div class="apple-card h-100 d-flex flex-column" style="max-height: 800px;">
+                <div class="card-header border-bottom">
+                    <h2 class="h5 mb-0"><i class="fas fa-comments me-2"></i>Event Chat</h2>
+                </div>
+                
+                <div class="chat-box flex-grow-1" id="chat-box">
+                    {% if announcements %}
+                        {% for msg in announcements %}
+                            <div class="chat-message {% if msg.author == session.username %}align-items-end{% else %}align-items-start{% endif %}">
+                                <div class="message-bubble">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <small class="fw-bold">{{ msg.author }}</small>
+                                    </div>
+                                    <p class="mb-1">{{ msg.content }}</p>
+                                    <div class="message-info">{{ msg.created_at[11:16] }}</div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-comment-dots fa-3x mb-3 opacity-25"></i>
+                            <p>No messages yet. Start the conversation!</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if session.role in ['admin', 'super_admin'] %}
+                <div class="chat-input-area">
+                    <form action="{{ url_for('add_announcement') }}" method="POST" class="d-flex gap-2 w-100">
+                        <input type="hidden" name="event_id" value="{{ event.id }}">
+                        <input type="hidden" name="title" value="Update for {{ event.name }}">
+                        <input type="text" name="content" class="chat-input" 
+                               placeholder="Type a message..." required autocomplete="off">
+                        <button type="submit" class="chat-send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+                {% else %}
+                <div class="card-footer bg-light p-3 text-center">
+                    <small class="text-muted">Only administrators can post messages.</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-scroll to bottom of chat
+    const chatBox = document.getElementById('chat-box');
+    if (chatBox) {
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Tab switching logic
+    document.querySelectorAll('.nav-tabs .nav-link').forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Remove active class from all tabs and panes
+            document.querySelectorAll('.nav-tabs .nav-link').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('show', 'active'));
+            
+            // Add active class to clicked tab
+            this.classList.add('active');
+            
+            // Show the corresponding pane
+            const targetId = this.getAttribute('data-bs-target');
+            const targetPane = document.querySelector(targetId);
+            if (targetPane) {
+                targetPane.classList.add('show', 'active');
+            }
+        });
+    });
+</script>
+
+{% endblock %}

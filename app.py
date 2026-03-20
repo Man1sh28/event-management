@@ -84,6 +84,17 @@ def init_db():
         )
     ''')
     
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS participant_events (
+            participant_id INTEGER NOT NULL,
+            event_id INTEGER NOT NULL,
+            assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (participant_id, event_id),
+            FOREIGN KEY (participant_id) REFERENCES participants (id) ON DELETE CASCADE,
+            FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 
@@ -168,11 +179,24 @@ def day_events(year, month, day):
     selected_date = date(year, month, day)
     
     conn = get_db_connection()
-    events = conn.execute('''
+    events_rows = conn.execute('''
         SELECT * FROM events 
         WHERE event_date = ?
         ORDER BY start_time
     ''', (selected_date,)).fetchall()
+    
+    events = []
+    for row in events_rows:
+        e = dict(row)
+        participants_rows = conn.execute('''
+            SELECT p.name 
+            FROM participants p 
+            JOIN participant_events pe ON p.id = pe.participant_id 
+            WHERE pe.event_id = ?
+        ''', (e['id'],)).fetchall()
+        e['assigned_participants'] = [p['name'] for p in participants_rows]
+        events.append(e)
+        
     conn.close()
     
     return render_template('day_events.html', 
@@ -271,7 +295,20 @@ def events():
     
     query += ' ORDER BY event_date ASC'
     
-    events = conn.execute(query, params).fetchall()
+    events_rows = conn.execute(query, params).fetchall()
+    
+    events = []
+    for row in events_rows:
+        e = dict(row)
+        participants_rows = conn.execute('''
+            SELECT p.name 
+            FROM participants p 
+            JOIN participant_events pe ON p.id = pe.participant_id 
+            WHERE pe.event_id = ?
+        ''', (e['id'],)).fetchall()
+        e['assigned_participants'] = [p['name'] for p in participants_rows]
+        events.append(e)
+        
     conn.close()
     
     return render_template('events.html', events=events, filter_type=filter_type, search=search)
@@ -361,7 +398,22 @@ def participants():
         query += ' AND (name LIKE ? OR class_dept LIKE ?)'
         params.extend([f'%{search}%', f'%{search}%'])
     
-    participants = conn.execute(query, params).fetchall()
+    participants_rows = conn.execute(query, params).fetchall()
+    
+    # Fetch events for each participant
+    participants = []
+    for row in participants_rows:
+        p = dict(row)
+        events_rows = conn.execute('''
+            SELECT e.name 
+            FROM events e 
+            JOIN participant_events pe ON e.id = pe.event_id 
+            WHERE pe.participant_id = ?
+        ''', (p['id'],)).fetchall()
+        p['assigned_events_list'] = [e['name'] for e in events_rows]
+        p['events_count'] = len(p['assigned_events_list'])
+        participants.append(p)
+        
     conn.close()
     
     return render_template('participants.html', participants=participants, search=search)
@@ -377,6 +429,7 @@ def add_participant():
         grade = request.form.get('grade', '')
         contact = request.form['contact']
         emergency_contact = request.form['emergency_contact']
+        selected_events = request.form.getlist('events')
 
         if grade:
             class_dept = f"Grade {grade}"
@@ -384,17 +437,26 @@ def add_participant():
             class_dept = school
         
         conn = get_db_connection()
-        conn.execute('''
+        cursor = conn.execute('''
             INSERT INTO participants (unique_id, name, type, class_dept, school, contact, emergency_contact)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (unique_id, name, participant_type, class_dept, school, contact, emergency_contact))
+        participant_id = cursor.lastrowid
+        
+        for event_id in selected_events:
+            conn.execute('INSERT INTO participant_events (participant_id, event_id) VALUES (?, ?)',
+                        (participant_id, event_id))
+            
         conn.commit()
         conn.close()
         
-        flash('Participant added successfully!', 'success')
+        flash('Participant added and assigned to events successfully!', 'success')
         return redirect(url_for('participants'))
     
-    return render_template('add_participant.html')
+    conn = get_db_connection()
+    events = conn.execute('SELECT id, name, event_date FROM events ORDER BY event_date').fetchall()
+    conn.close()
+    return render_template('add_participant.html', events=events)
 
 @app.route('/participants/<int:id>/edit', methods=['GET', 'POST'])
 @role_required(['admin', 'super_admin'])
@@ -410,6 +472,7 @@ def edit_participant(id):
         grade = request.form.get('grade', '')
         contact = request.form['contact']
         emergency_contact = request.form['emergency_contact']
+        selected_events = request.form.getlist('events')
 
         if grade:
             class_dept = f"Grade {grade}"
@@ -420,14 +483,23 @@ def edit_participant(id):
             UPDATE participants SET unique_id = ?, name = ?, type = ?, class_dept = ?, school = ?, 
                            contact = ?, emergency_contact = ? WHERE id = ?
         ''', (unique_id, name, participant_type, class_dept, school, contact, emergency_contact, id))
+        
+        # Update event assignments
+        conn.execute('DELETE FROM participant_events WHERE participant_id = ?', (id,))
+        for event_id in selected_events:
+            conn.execute('INSERT INTO participant_events (participant_id, event_id) VALUES (?, ?)',
+                        (id, event_id))
+            
         conn.commit()
         conn.close()
         
         flash('Participant updated successfully!', 'success')
         return redirect(url_for('participants'))
     
+    events = conn.execute('SELECT id, name, event_date FROM events ORDER BY event_date').fetchall()
+    assigned_events = [row['event_id'] for row in conn.execute('SELECT event_id FROM participant_events WHERE participant_id = ?', (id,)).fetchall()]
     conn.close()
-    return render_template('edit_participant.html', participant=participant)
+    return render_template('edit_participant.html', participant=participant, events=events, assigned_events=assigned_events)
 
 @app.route('/participants/<int:id>/delete', methods=['POST'])
 @role_required(['admin', 'super_admin'])
@@ -478,18 +550,23 @@ def assign_duty():
         start_time = time_parts[0].strip()
         end_time = time_parts[1].strip() if len(time_parts) > 1 else start_time
         
-        person_name = request.form['teacher_name'].strip()
+        user_id = request.form['user_id']
         
         conn = get_db_connection()
         
+        # Check if user already exists in duty_personnel by mapping user_id
+        # We'll use a unique identifier or just link to the users table
+        # For simplicity, let's update duty_personnel to have a user_id link or just use the name
+        user = conn.execute('SELECT username, role FROM users WHERE id = ?', (user_id,)).fetchone()
+        
         person = conn.execute('SELECT id FROM duty_personnel WHERE name = ?', 
-                             (person_name,)).fetchone()
+                             (user['username'],)).fetchone()
         
         if person:
             duty_person_id = person['id']
         else:
-            cursor = conn.execute('INSERT INTO duty_personnel (name, designation, school) VALUES (?, "", "")',
-                                (person_name,))
+            cursor = conn.execute('INSERT INTO duty_personnel (name, designation, school) VALUES (?, ?, ?)',
+                                (user['username'], user['role'].capitalize(), 'Main School'))
             duty_person_id = cursor.lastrowid
         
         conn.execute('''
@@ -505,10 +582,11 @@ def assign_duty():
         return redirect(url_for('duties'))
     
     conn = get_db_connection()
-    events = conn.execute('SELECT id, name, event_date, venue FROM events ORDER BY event_date').fetchall()
+    events = conn.execute('SELECT id, name, event_date, venue, start_time, end_time FROM events ORDER BY event_date').fetchall()
+    admins = conn.execute('SELECT id, username, role FROM users WHERE role IN ("admin", "super_admin")').fetchall()
     conn.close()
     
-    return render_template('add_duty.html', events=events)
+    return render_template('add_duty.html', events=events, admins=admins)
 
 @app.route('/duties/add', methods=['GET', 'POST'])
 @role_required(['admin', 'super_admin'])
@@ -523,7 +601,7 @@ def edit_duty(id):
     
     if request.method == 'POST':
         event_id = request.form['event_id']
-        person_name = request.form['teacher_name'].strip()
+        user_id = request.form['user_id']
         duty_type = request.form['duty_type']
         duty_date = request.form['duty_date']
         time_slot = request.form['time_slot']
@@ -535,16 +613,16 @@ def edit_duty(id):
         start_time = time_parts[0].strip()
         end_time = time_parts[1].strip() if len(time_parts) > 1 else start_time
         
-        conn = get_db_connection()
+        user = conn.execute('SELECT username, role FROM users WHERE id = ?', (user_id,)).fetchone()
         
         person = conn.execute('SELECT id FROM duty_personnel WHERE name = ?', 
-                             (person_name,)).fetchone()
+                             (user['username'],)).fetchone()
         
         if person:
             duty_person_id = person['id']
         else:
-            cursor = conn.execute('INSERT INTO duty_personnel (name, designation, school) VALUES (?, "", "")',
-                                (person_name,))
+            cursor = conn.execute('INSERT INTO duty_personnel (name, designation, school) VALUES (?, ?, ?)',
+                                (user['username'], user['role'].capitalize(), 'Main School'))
             duty_person_id = cursor.lastrowid
         
         conn.execute('''
@@ -560,10 +638,16 @@ def edit_duty(id):
         return redirect(url_for('duties'))
     
     events = conn.execute('SELECT id, name, event_date, venue FROM events ORDER BY event_date').fetchall()
-    duty_personnel = conn.execute('SELECT id, name, designation FROM duty_personnel ORDER BY name').fetchall()
+    admins = conn.execute('SELECT id, username, role FROM users WHERE role IN ("admin", "super_admin")').fetchall()
+    
+    # Get current user id from duty_personnel name
+    current_person = conn.execute('SELECT name FROM duty_personnel WHERE id = ?', (duty['duty_person_id'],)).fetchone()
+    current_user = conn.execute('SELECT id FROM users WHERE username = ?', (current_person['name'],)).fetchone()
+    current_user_id = current_user['id'] if current_user else None
+    
     conn.close()
     
-    return render_template('edit_duty.html', duty=duty, events=events, duty_personnel=duty_personnel)
+    return render_template('edit_duty.html', duty=duty, events=events, admins=admins, current_user_id=current_user_id)
 
 @app.route('/duties/<int:id>/delete', methods=['POST'])
 @role_required(['admin', 'super_admin'])

@@ -38,8 +38,13 @@
                         </div>
                         
                         <div class="form-field">
-                            <label for="teacher_name">Person Name *</label>
-                            <input type="text" id="teacher_name" name="teacher_name" placeholder="Enter person's full name" required>
+                            <label for="user_id">Assign to Admin *</label>
+                            <select id="user_id" name="user_id" required>
+                                <option value="">Select Admin</option>
+                                {% for admin in admins %}
+                                    <option value="{{ admin.id }}">{{ admin.username }} ({{ admin.role|capitalize }})</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         
                         <div class="form-field">

@@ -73,6 +73,12 @@
                                 <strong>Participating:</strong> {{ event.participating_schools }}
                             </div>
                         {% endif %}
+                        {% if event.assigned_participants %}
+                            <div class="event-detail">
+                                <i class="fas fa-user-graduate"></i>
+                                <strong>Students:</strong> {{ event.assigned_participants|join(', ') }}
+                            </div>
+                        {% endif %}
                     </div>
                     {% if session.role in ['admin', 'super_admin'] %}
                     <div class="event-footer">

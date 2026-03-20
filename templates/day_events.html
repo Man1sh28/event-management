@@ -33,6 +33,9 @@
                         {% if event.participating_schools %}
                             <p class="event-schools">Participating Schools: {{ event.participating_schools }}</p>
                         {% endif %}
+                        {% if event.assigned_participants %}
+                            <p class="event-assigned">Assigned Students: {{ event.assigned_participants|join(', ') }}</p>
+                        {% endif %}
                     </div>
                     {% if session.role in ['admin', 'super_admin'] %}
                     <div class="event-actions">

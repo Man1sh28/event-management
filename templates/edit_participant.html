@@ -70,6 +70,18 @@
                                    value="{{ participant.emergency_contact or '' }}" placeholder="Name and phone number">
                         </div>
                         
+                        <div class="form-field">
+                            <label for="events">Assign to Events</label>
+                            <select id="events" name="events" multiple style="height: 150px;">
+                                {% for event in events %}
+                                    <option value="{{ event.id }}" {% if event.id in assigned_events %}selected{% endif %}>
+                                        {{ event.name }} ({{ event.event_date }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple events.</small>
+                        </div>
+                        
                         <div class="form-actions">
                             <a href="{{ url_for('participants') }}" class="btn-secondary">Cancel</a>
                             <button type="submit" class="btn-primary">

@@ -693,7 +693,15 @@
                                                 <div class="participant-contact">{{ participant.contact }}</div>
                                             </td>
                                             <td>
-                                                <span class="events-count">{{ participant.events_count }} events</span>
+                                                <div class="events-list">
+                                                    {% if participant.assigned_events_list %}
+                                                        {% for event_name in participant.assigned_events_list %}
+                                                            <span class="badge badge-info">{{ event_name }}</span>
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        <small class="text-muted">No events assigned</small>
+                                                    {% endif %}
+                                                </div>
                                             </td>
                                             {% if session.role in ['admin', 'super_admin'] %}
                                             <td>

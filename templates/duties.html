@@ -465,11 +465,13 @@
     <div class="container">
         <h1><i class="fas fa-tasks"></i>Duties & Assignments</h1>
         <p>Streamlined event management and duty coordination</p>
+        {% if session.role in ['admin', 'super_admin'] %}
         <div class="header-actions">
             <a href="{{ url_for('add_duty') }}" class="action-btn">
                 <i class="fas fa-plus"></i> Assign Duty
             </a>
         </div>
+        {% endif %}
     </div>
 </div>
 
@@ -527,7 +529,9 @@
                                 <th>Duty Type</th>
                                 <th>Time Slot</th>
                                 <th>Location</th>
+                                {% if session.role in ['admin', 'super_admin'] %}
                                 <th>Actions</th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -552,6 +556,7 @@
                                     <td>
                                         {{ duty.location or '-' }}
                                     </td>
+                                    {% if session.role in ['admin', 'super_admin'] %}
                                     <td>
                                         <div class="btn-group">
                                             <a href="{{ url_for('edit_duty', id=duty.id) }}" 
@@ -569,6 +574,7 @@
                                             </form>
                                         </div>
                                     </td>
+                                    {% endif %}
                                 </tr>
                             {% endfor %}
                         </tbody>

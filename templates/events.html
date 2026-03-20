@@ -7,9 +7,11 @@
     <div class="header">
         <div class="header-content">
             <h1><i class="fas fa-calendar"></i> Events</h1>
+            {% if session.role in ['admin', 'super_admin'] %}
             <a href="{{ url_for('add_event') }}" class="add-btn">
                 <i class="fas fa-plus"></i> Add New Event
             </a>
+            {% endif %}
         </div>
     </div>
 
@@ -72,6 +74,7 @@
                             </div>
                         {% endif %}
                     </div>
+                    {% if session.role in ['admin', 'super_admin'] %}
                     <div class="event-footer">
                         <a href="{{ url_for('edit_event', id=event.id) }}" class="btn-sm btn-edit">
                             <i class="fas fa-edit"></i> Edit
@@ -83,6 +86,7 @@
                             </button>
                         </form>
                     </div>
+                    {% endif %}
                 </div>
             {% endfor %}
         {% endif %}

@@ -7,7 +7,9 @@
     <div class="day-header">
         <h1>Events for {{ selected_date.strftime('%A, %B %d, %Y') }}</h1>
         <div class="day-actions">
+            {% if session.role in ['admin', 'super_admin'] %}
             <a href="{{ url_for('add_calendar_event', year=year, month=month, day=day) }}" class="btn btn-primary">Add Event</a>
+            {% endif %}
             <a href="{{ url_for('calendar_view', year=year, month=month) }}" class="btn btn-secondary">Back to Calendar</a>
         </div>
     </div>
@@ -32,12 +34,14 @@
                             <p class="event-schools">Participating Schools: {{ event.participating_schools }}</p>
                         {% endif %}
                     </div>
+                    {% if session.role in ['admin', 'super_admin'] %}
                     <div class="event-actions">
                         <a href="{{ url_for('edit_event', id=event.id) }}" class="btn btn-edit">Edit</a>
                         <form method="POST" action="{{ url_for('delete_event', id=event.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this event?');">
                             <button type="submit" class="btn btn-delete">Delete</button>
                         </form>
                     </div>
+                    {% endif %}
                 </div>
             {% endfor %}
         </div>
@@ -46,7 +50,9 @@
             <div class="no-events-content">
                 <h3>No events scheduled for this day</h3>
                 <p>There are no events scheduled for {{ selected_date.strftime('%B %d, %Y') }}.</p>
+                {% if session.role in ['admin', 'super_admin'] %}
                 <a href="{{ url_for('add_calendar_event', year=year, month=month, day=day) }}" class="btn btn-primary">Add First Event</a>
+                {% endif %}
             </div>
         </div>
     {% endif %}

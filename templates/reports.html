@@ -578,6 +578,7 @@
         </div>
     </div>
 
+    {% if session.role in ['admin', 'super_admin'] %}
     <div class="container">   
         <div class="export-section">
             <h3 class="export-title">Export Data</h3>
@@ -595,6 +596,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <script>
        

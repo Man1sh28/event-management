@@ -743,12 +743,14 @@
                         <i class="fas fa-calendar calendar-icon"></i>
                         Event Calendar
                     </h1>
+                    {% if session.role in ['admin', 'super_admin'] %}
                     <div class="calendar-actions">
                         <a href="{{ url_for('add_calendar_event') }}" class="btn-primary">
                             <i class="fas fa-plus"></i>
                             Add Event
                         </a>
                     </div>
+                    {% endif %}
                 </div>
                 
                 <div class="calendar-navigation">
@@ -786,11 +788,13 @@
                                             <div class="day-number">
                                                 <a href="{{ url_for('day_events', year=year, month=month, day=day) }}">{{ day }}</a>
                                             </div>
+                                            {% if session.role in ['admin', 'super_admin'] %}
                                             <div class="add-event-link">
                                                 <a href="{{ url_for('add_calendar_event', year=year, month=month, day=day) }}" class="add-btn" title="Add Event">
                                                     <i class="fas fa-plus"></i>
                                                 </a>
                                             </div>
+                                            {% endif %}
                                         </div>
                                         <div class="day-events">
                                             {% set day_str = year ~ '-' ~ (month|string).zfill(2) ~ '-' ~ (day|string).zfill(2) %}

@@ -635,10 +635,12 @@
                     <i class="fas fa-users"></i>
                     Participants
                 </h1>
+                {% if session.role in ['admin', 'super_admin'] %}
                 <a href="{{ url_for('add_participant') }}" class="action-btn">
                     <i class="fas fa-user-plus"></i>
                     Add Participant
                 </a>
+                {% endif %}
             </div>
 
         
@@ -670,7 +672,9 @@
                                         <th>Department</th>
                                         <th>Contact</th>
                                         <th>Events</th>
+                                        {% if session.role in ['admin', 'super_admin'] %}
                                         <th>Actions</th>
+                                        {% endif %}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -691,6 +695,7 @@
                                             <td>
                                                 <span class="events-count">{{ participant.events_count }} events</span>
                                             </td>
+                                            {% if session.role in ['admin', 'super_admin'] %}
                                             <td>
                                                 <div class="action-group">
                                                     <a href="{{ url_for('edit_participant', id=participant.id) }}" 
@@ -710,6 +715,7 @@
                                                     </form>
                                                 </div>
                                             </td>
+                                            {% endif %}
                                         </tr>
                                     {% endfor %}
                                 </tbody>

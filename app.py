@@ -62,7 +62,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
-            role TEXT DEFAULT 'user',
+            role TEXT DEFAULT 'student',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -100,6 +100,20 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
+
+def role_required(roles):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'user_id' not in session:
+                flash('Please login to access this page', 'error')
+                return redirect(url_for('login'))
+            if session.get('role') not in roles:
+                flash('You do not have permission to access this page', 'error')
+                return redirect(url_for('dashboard'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
 def get_calendar_data(year, month):
     cal = calendar.monthcalendar(year, month)
@@ -167,7 +181,7 @@ def day_events(year, month, day):
                          year=year, month=month, day=day)
 
 @app.route('/calendar/add_event', methods=['GET', 'POST'])
-@login_required
+@role_required(['admin', 'super_admin'])
 def add_calendar_event():
     if request.method == 'POST':
         name = request.form['name']
@@ -263,7 +277,7 @@ def events():
     return render_template('events.html', events=events, filter_type=filter_type, search=search)
 
 @app.route('/events/add', methods=['GET', 'POST'])
-@login_required
+@role_required(['admin', 'super_admin'])
 def add_event():
     if request.method == 'POST':
         name = request.form['name']
@@ -292,7 +306,7 @@ def add_event():
     return render_template('add_event.html')
 
 @app.route('/events/<int:id>/edit', methods=['GET', 'POST'])
-@login_required
+@role_required(['admin', 'super_admin'])
 def edit_event(id):
     conn = get_db_connection()
     event = conn.execute('SELECT * FROM events WHERE id = ?', (id,)).fetchone()
@@ -324,7 +338,7 @@ def edit_event(id):
     return render_template('edit_event.html', event=event)
 
 @app.route('/events/<int:id>/delete', methods=['POST'])
-@login_required
+@role_required(['admin', 'super_admin'])
 def delete_event(id):
     conn = get_db_connection()
     conn.execute('DELETE FROM events WHERE id = ?', (id,))
@@ -353,7 +367,7 @@ def participants():
     return render_template('participants.html', participants=participants, search=search)
 
 @app.route('/participants/add', methods=['GET', 'POST'])
-@login_required
+@role_required(['admin', 'super_admin'])
 def add_participant():
     if request.method == 'POST':
         unique_id = request.form['unique_id']
@@ -383,7 +397,7 @@ def add_participant():
     return render_template('add_participant.html')
 
 @app.route('/participants/<int:id>/edit', methods=['GET', 'POST'])
-@login_required
+@role_required(['admin', 'super_admin'])
 def edit_participant(id):
     conn = get_db_connection()
     participant = conn.execute('SELECT * FROM participants WHERE id = ?', (id,)).fetchone()
@@ -416,7 +430,7 @@ def edit_participant(id):
     return render_template('edit_participant.html', participant=participant)
 
 @app.route('/participants/<int:id>/delete', methods=['POST'])
-@login_required
+@role_required(['admin', 'super_admin'])
 def delete_participant(id):
     conn = get_db_connection()
     conn.execute('DELETE FROM participants WHERE id = ?', (id,))
@@ -449,7 +463,7 @@ def duties():
                          duty_personnel=duty_personnel)
 
 @app.route('/duties/assign', methods=['GET', 'POST'])
-@login_required
+@role_required(['admin', 'super_admin'])
 def assign_duty():
     if request.method == 'POST':
         event_id = request.form['event_id']
@@ -497,12 +511,12 @@ def assign_duty():
     return render_template('add_duty.html', events=events)
 
 @app.route('/duties/add', methods=['GET', 'POST'])
-@login_required
+@role_required(['admin', 'super_admin'])
 def add_duty():
     return assign_duty()
 
 @app.route('/duties/<int:id>/edit', methods=['GET', 'POST'])
-@login_required
+@role_required(['admin', 'super_admin'])
 def edit_duty(id):
     conn = get_db_connection()
     duty = conn.execute('SELECT * FROM duties WHERE id = ?', (id,)).fetchone()
@@ -552,7 +566,7 @@ def edit_duty(id):
     return render_template('edit_duty.html', duty=duty, events=events, duty_personnel=duty_personnel)
 
 @app.route('/duties/<int:id>/delete', methods=['POST'])
-@login_required
+@role_required(['admin', 'super_admin'])
 def delete_duty(id):
     conn = get_db_connection()
     conn.execute('DELETE FROM duties WHERE id = ?', (id,))
@@ -641,7 +655,11 @@ def register():
             return render_template('register.html')
         
         password_hash = generate_password_hash(password)
-        conn.execute('INSERT INTO users (username, password_hash) VALUES (?, ?)', (username, password_hash))
+        # Check if this is the first user, if so, make them super_admin
+        count = conn.execute('SELECT COUNT(*) as count FROM users').fetchone()['count']
+        role = 'super_admin' if count == 0 else 'student'
+        
+        conn.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)', (username, password_hash, role))
         conn.commit()
         conn.close()
         
@@ -700,7 +718,7 @@ def reports():
                          duty_stats=duty_stats)
 
 @app.route('/reports/export')
-@login_required
+@role_required(['admin', 'super_admin'])
 def export_reports():
     import csv
     from io import StringIO
@@ -754,7 +772,7 @@ def export_reports():
     return response
 
 @app.route('/export/events')
-@login_required
+@role_required(['admin', 'super_admin'])
 def export_events():
     import csv
     from io import StringIO
@@ -778,7 +796,7 @@ def export_events():
     return response
 
 @app.route('/export/participants')
-@login_required
+@role_required(['admin', 'super_admin'])
 def export_participants():
     import csv
     from io import StringIO
@@ -802,7 +820,7 @@ def export_participants():
     return response
 
 @app.route('/export/duties')
-@login_required
+@role_required(['admin', 'super_admin'])
 def export_duties():
     import csv
     from io import StringIO
@@ -832,7 +850,7 @@ def export_duties():
     return response
 
 @app.route('/export/teachers')
-@login_required
+@role_required(['admin', 'super_admin'])
 def export_teachers():
     import csv
     from io import StringIO
@@ -859,7 +877,7 @@ def export_teachers():
     return response
 
 @app.route('/delete_all_data', methods=['POST'])
-@login_required
+@role_required(['super_admin'])
 def delete_all_data():
     try:
         conn = get_db_connection()
@@ -867,7 +885,7 @@ def delete_all_data():
         conn.execute('DELETE FROM duty_personnel')
         conn.execute('DELETE FROM participants')
         conn.execute('DELETE FROM events')
-        conn.execute('DELETE FROM users')
+        conn.execute('DELETE FROM users WHERE role != "super_admin"')
         conn.commit()
         conn.close()
         
@@ -932,6 +950,29 @@ def scan_event():
             
     except Exception as e:
         return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+@app.route('/manage_users')
+@role_required(['super_admin'])
+def manage_users():
+    conn = get_db_connection()
+    users = conn.execute('SELECT id, username, role FROM users WHERE role != "super_admin"').fetchall()
+    conn.close()
+    return render_template('manage_users.html', users=users)
+
+@app.route('/promote_user/<int:user_id>/<string:role>')
+@role_required(['super_admin'])
+def promote_user(user_id, role):
+    if role not in ['admin', 'student']:
+        flash('Invalid role', 'error')
+        return redirect(url_for('manage_users'))
+    
+    conn = get_db_connection()
+    conn.execute('UPDATE users SET role = ? WHERE id = ?', (role, user_id))
+    conn.commit()
+    conn.close()
+    
+    flash(f'User role updated to {role}', 'success')
+    return redirect(url_for('manage_users'))
 
 if __name__ == "__main__":
     init_db()

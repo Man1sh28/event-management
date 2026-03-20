@@ -770,6 +770,7 @@
                 </div>
                 <div class="card-body">
                     <div class="action-buttons">
+                        {% if session.role in ['admin', 'super_admin'] %}
                         <button class="action-btn" onclick="openImageScanner()">
                             <i class="fas fa-camera"></i>Scan Event from Image
                         </button>
@@ -782,12 +783,15 @@
                         <a href="{{ url_for('add_duty') }}" class="action-btn warning">
                             <i class="fas fa-tasks"></i>Assign Duty
                         </a>
+                        {% endif %}
                         <a href="{{ url_for('reports') }}" class="action-btn secondary">
                             <i class="fas fa-chart-bar"></i>View Reports
                         </a>
+                        {% if session.role == 'super_admin' %}
                         <button class="action-btn" style="background: #ff3b30;" onclick="confirmDeleteAllData()">
                             <i class="fas fa-trash-alt"></i>Delete All Data
                         </button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -795,6 +799,7 @@
     </div>
 
 
+    {% if session.role == 'super_admin' %}
     <div class="container">
         <div class="danger-zone">
             <h2><i class="fas fa-exclamation-triangle"></i> Danger Zone</h2>
@@ -805,6 +810,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- Modern Modal System -->
     <div id="modal-overlay" class="modal-overlay" style="display: none;">

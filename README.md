@@ -255,4 +255,13 @@ This project is open-source and available for educational and commercial use.
 
 **Happy Event Management!** 🎉
 
-The system is now ready to use. Access it at `http://localhost:8001` in your web browser.
+The system is now ready to use. Access it at `http://localhost:8001` in your web browser.\
+
+
+
+threee types of user 
+super admin
+admin 
+student 
+
+they all have their own functions

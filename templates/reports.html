@@ -550,6 +550,7 @@
                     <i class="fas fa-calendar"></i>
                     <span>Events</span>
                 </a>
+                {% if session.role != 'student' %}
                 <a href="{{ url_for('participants') }}" class="nav-link">
                     <i class="fas fa-users"></i>
                     <span>Students</span>
@@ -558,6 +559,7 @@
                     <i class="fas fa-tasks"></i>
                     <span>Duties</span>
                 </a>
+                {% endif %}
                 <a href="{{ url_for('reports') }}" class="nav-link active">
                     <i class="fas fa-chart-bar"></i>
                     <span>Reports</span>
@@ -574,11 +576,126 @@
     <div class="header">
         <div class="container">
             <h1>Reports & Analytics</h1>
+            {% if is_student %}
+            <p>View your enrolled events and assigned duties</p>
+            {% else %}
             <p>Comprehensive insights into your school's events and activities</p>
+            {% endif %}
         </div>
     </div>
 
-    {% if session.role in ['admin', 'super_admin'] %}
+    {% if is_student %}
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card green">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-number">{{ my_events|length }}</div>
+                <div class="stat-label">Enrolled Events</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="stat-number">{{ my_duties|length }}</div>
+                <div class="stat-label">Assigned Duties</div>
+            </div>
+        </div>
+
+        {% if my_participant %}
+        <div class="profile-section" style="background: white; border-radius: 24px; padding: 30px; margin-bottom: 30px;">
+            <h3 style="margin-bottom: 20px;"><i class="fas fa-user"></i> My Profile</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div>
+                    <strong>Name:</strong> {{ my_participant.name }}
+                </div>
+                <div>
+                    <strong>Unique ID:</strong> {{ my_participant.unique_id }}
+                </div>
+                <div>
+                    <strong>School:</strong> {{ my_participant.school }}
+                </div>
+                <div>
+                    <strong>Grade:</strong> {{ my_participant.grade }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-calendar"></i> My Enrolled Events</h3>
+                </div>
+                <div class="chart-body">
+                    {% if my_events %}
+                    <table class="apple-table">
+                        <thead>
+                            <tr>
+                                <th>Event Name</th>
+                                <th>Date</th>
+                                <th>Venue</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in my_events %}
+                            <tr onclick="window.location.href='{{ url_for('event_detail', id=event.id) }}';" style="cursor: pointer;">
+                                <td>{{ event.name }}</td>
+                                <td>{{ event.event_date }}</td>
+                                <td>{{ event.venue }}</td>
+                                <td><span class="badge primary">{{ event.type }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <p>No events enrolled yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-tasks"></i> My Assigned Duties</h3>
+                </div>
+                <div class="chart-body">
+                    {% if my_duties %}
+                    <table class="apple-table">
+                        <thead>
+                            <tr>
+                                <th>Duty</th>
+                                <th>Event</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for duty in my_duties %}
+                            <tr>
+                                <td>{{ duty.duty_type }}</td>
+                                <td>{{ duty.event_name }}</td>
+                                <td>{{ duty.duty_date }}</td>
+                                <td>{{ duty.time_slot }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-clipboard-list"></i>
+                        <p>No duties assigned yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif session.role in ['admin', 'super_admin'] %}
     <div class="container">   
         <div class="export-section">
             <h3 class="export-title">Export Data</h3>

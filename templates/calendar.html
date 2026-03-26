@@ -715,6 +715,7 @@
                     <i class="fas fa-calendar"></i>
                     <span>Events</span>
                 </a>
+                {% if session.role != 'student' %}
                 <a href="{{ url_for('participants') }}" class="nav-link">
                     <i class="fas fa-users"></i>
                     <span>Students</span>
@@ -723,6 +724,7 @@
                     <i class="fas fa-tasks"></i>
                     <span>Duties</span>
                 </a>
+                {% endif %}
                 <a href="{{ url_for('reports') }}" class="nav-link">
                     <i class="fas fa-chart-bar"></i>
                     <span>Reports</span>

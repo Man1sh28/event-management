@@ -686,17 +686,7 @@
 
     <div class="container">
         <div class="stats-grid">
-            <div class="stat-card fade-in">
-                <div class="stat-card-content">
-                    <div>
-                        <div class="stat-number">{{ total_events }}</div>
-                        <div class="stat-label">Total Events</div>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="fas fa-calendar"></i>
-                    </div>
-                </div>
-            </div>
+            {% if not is_student %}
             <div class="stat-card fade-in">
                 <div class="stat-card-content">
                     <div>
@@ -705,6 +695,18 @@
                     </div>
                     <div class="stat-icon">
                         <i class="fas fa-graduation-cap"></i>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <div class="stat-card fade-in">
+                <div class="stat-card-content">
+                    <div>
+                        <div class="stat-number">{{ total_events }}</div>
+                        <div class="stat-label">Total Events</div>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar"></i>
                     </div>
                 </div>
             </div>

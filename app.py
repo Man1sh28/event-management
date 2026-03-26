@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, make_response
 import sqlite3
 import os
 from datetime import datetime, date, timedelta
@@ -8,6 +8,8 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import tempfile
+import pandas as pd
+import io
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'
@@ -280,12 +282,15 @@ def dashboard():
 
     conn.close()
     
+    is_student = session.get('role') == 'student'
+    
     return render_template('dashboard.html', 
                          total_events=total_events,
                          total_participants=total_participants,
                          total_duty_personnel=total_duty_personnel,
                          total_duties=total_duties,
-                         upcoming_events=upcoming_events)
+                         upcoming_events=upcoming_events,
+                         is_student=is_student)
 
 @app.route('/events')
 @login_required
@@ -293,9 +298,28 @@ def events():
     conn = get_db_connection()
     filter_type = request.args.get('filter', 'all')
     search = request.args.get('search', '')
+    is_student = session.get('role') == 'student'
     
-    query = 'SELECT * FROM events WHERE 1=1'
-    params = []
+    if is_student:
+        my_participant = conn.execute('''
+            SELECT p.id FROM participants p
+            JOIN users u ON u.username = p.unique_id
+            WHERE u.id = ?
+        ''', (session['user_id'],)).fetchone()
+        
+        if my_participant:
+            query = '''
+                SELECT e.* FROM events e
+                JOIN participant_events pe ON e.id = pe.event_id
+                WHERE pe.participant_id = ?
+            '''
+            params = [my_participant['id']]
+        else:
+            query = 'SELECT * FROM events WHERE 1=0'
+            params = []
+    else:
+        query = 'SELECT * FROM events WHERE 1=1'
+        params = []
     
     if filter_type == 'upcoming':
         query += ' AND event_date >= DATE("now")'
@@ -320,11 +344,13 @@ def events():
             WHERE pe.event_id = ?
         ''', (e['id'],)).fetchall()
         e['assigned_participants'] = [p['name'] for p in participants_rows]
+        e['is_enrolled'] = True
+        
         events.append(e)
         
     conn.close()
     
-    return render_template('events.html', events=events, filter_type=filter_type, search=search)
+    return render_template('events.html', events=events, filter_type=filter_type, search=search, is_student=is_student)
 
 @app.route('/events/<int:id>')
 @login_required
@@ -336,6 +362,20 @@ def event_detail(id):
         conn.close()
         flash('Event not found', 'error')
         return redirect(url_for('events'))
+    
+    is_student = session.get('role') == 'student'
+    
+    if is_student:
+        participant = conn.execute('''
+            SELECT p.id FROM participants p 
+            JOIN users u ON u.username = p.unique_id 
+            WHERE u.id = ? AND p.id IN (SELECT participant_id FROM participant_events WHERE event_id = ?)
+        ''', (session['user_id'], id)).fetchone()
+        
+        if not participant:
+            conn.close()
+            flash('You are not enrolled in this event', 'error')
+            return redirect(url_for('events'))
     
     event = dict(event_row)
     
@@ -367,7 +407,8 @@ def event_detail(id):
                          event=event, 
                          participants=participants_rows,
                          duties=duties_rows,
-                         announcements=announcements)
+                         announcements=announcements,
+                         is_student=is_student)
 
 @app.route('/announcements/add', methods=['POST'])
 @role_required(['admin', 'super_admin'])
@@ -521,6 +562,13 @@ def add_participant():
             class_dept = school
         
         conn = get_db_connection()
+        existing = conn.execute('SELECT id FROM participants WHERE unique_id = ?', (unique_id,)).fetchone()
+        if existing:
+            events = conn.execute('SELECT id, name, event_date FROM events ORDER BY event_date').fetchall()
+            conn.close()
+            flash('A participant with this Unique ID already exists!', 'error')
+            return render_template('add_participant.html', events=events)
+
         cursor = conn.execute('''
             INSERT INTO participants (unique_id, name, type, class_dept, school, contact, emergency_contact)
             VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -541,6 +589,123 @@ def add_participant():
     events = conn.execute('SELECT id, name, event_date FROM events ORDER BY event_date').fetchall()
     conn.close()
     return render_template('add_participant.html', events=events)
+
+@app.route('/participants/bulk-upload')
+@role_required(['admin', 'super_admin'])
+def bulk_upload_participants():
+    return render_template('bulk_upload_participants.html')
+
+@app.route('/participants/bulk-upload/template')
+@role_required(['admin', 'super_admin'])
+def download_bulk_upload_template():
+    df = pd.DataFrame({
+        'unique_id': ['STU001', 'STU002', 'STU003'],
+        'name': ['John Smith', 'Jane Doe', 'Bob Wilson'],
+        'school': ['School A', 'School B', 'School C'],
+        'grade': ['6', '7', '8'],
+        'contact': ['email@example.com', 'phone@example.com', 'email@phone.example.com'],
+        'emergency_contact': ['Emergency Name 1 - Phone 1', 'Emergency Name 2 - Phone 2', 'Emergency Name 3 - Phone 3'],
+        'event_ids': ['1,2', '2,3', '1,3']
+    })
+    output = io.StringIO()
+    df.to_csv(output, index=False)
+    output.seek(0)
+    response = make_response(output.getvalue())
+    response.headers['Content-Disposition'] = 'attachment; filename=participant_template.csv'
+    response.headers['Content-type'] = 'text/csv'
+    return response
+
+@app.route('/participants/bulk-upload/process', methods=['POST'])
+@role_required(['admin', 'super_admin'])
+def process_bulk_upload():
+    if 'file' not in request.files:
+        flash('No file uploaded', 'error')
+        return redirect(url_for('bulk_upload_participants'))
+    
+    file = request.files['file']
+    if file.filename == '':
+        flash('No file selected', 'error')
+        return redirect(url_for('bulk_upload_participants'))
+    
+    if file and (file.filename.endswith('.csv') or file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
+        conn = get_db_connection()
+        added_count = 0
+        skipped_count = 0
+        error_messages = []
+        
+        try:
+            if file.filename.endswith('.csv'):
+                df = pd.read_csv(file)
+            else:
+                df = pd.read_excel(file)
+            
+            df.columns = df.columns.str.strip().str.lower()
+            
+            required_columns = ['unique_id', 'name', 'school']
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            if missing_columns:
+                flash(f'Missing required columns: {", ".join(missing_columns)}', 'error')
+                conn.close()
+                return redirect(url_for('bulk_upload_participants'))
+            
+            for index, row in df.iterrows():
+                try:
+                    unique_id = str(row.get('unique_id', '')).strip()
+                    name = str(row.get('name', '')).strip()
+                    school = str(row.get('school', '')).strip()
+                    grade = str(row.get('grade', '')).strip()
+                    contact = str(row.get('contact', '')).strip()
+                    emergency_contact = str(row.get('emergency_contact', '')).strip()
+                    event_ids_str = str(row.get('event_ids', '')).strip()
+                    
+                    if not unique_id or not name or not school:
+                        skipped_count += 1
+                        error_messages.append(f'Row {index + 2}: Missing required fields')
+                        continue
+                    
+                    existing = conn.execute('SELECT id FROM participants WHERE unique_id = ?', (unique_id,)).fetchone()
+                    if existing:
+                        skipped_count += 1
+                        error_messages.append(f'Row {index + 2}: Duplicate unique_id {unique_id}')
+                        continue
+                    
+                    if grade:
+                        class_dept = f"Grade {grade}"
+                    else:
+                        class_dept = school
+                    
+                    cursor = conn.execute('''
+                        INSERT INTO participants (unique_id, name, type, class_dept, school, contact, emergency_contact)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', (unique_id, name, 'student', class_dept, school, contact, emergency_contact))
+                    participant_id = cursor.lastrowid
+                    
+                    if event_ids_str:
+                        event_ids = [eid.strip() for eid in event_ids_str.split(',') if eid.strip().isdigit()]
+                        for event_id in event_ids:
+                            conn.execute('INSERT INTO participant_events (participant_id, event_id) VALUES (?, ?)',
+                                        (participant_id, int(event_id)))
+                    
+                    added_count += 1
+                    
+                except Exception as e:
+                    skipped_count += 1
+                    error_messages.append(f'Row {index + 2}: {str(e)}')
+            
+            conn.commit()
+            conn.close()
+            
+            message = f'Successfully added {added_count} participants.'
+            if skipped_count > 0:
+                message += f' Skipped {skipped_count} rows.'
+            flash(message, 'success' if added_count > 0 else 'warning')
+            
+        except Exception as e:
+            flash(f'Error processing file: {str(e)}', 'error')
+    else:
+        flash('Invalid file format. Please upload a CSV or Excel file.', 'error')
+    
+    return redirect(url_for('bulk_upload_participants'))
 
 @app.route('/participants/<int:id>/edit', methods=['GET', 'POST'])
 @role_required(['admin', 'super_admin'])
@@ -840,6 +1005,45 @@ def register():
 @login_required
 def reports():
     conn = get_db_connection()
+    is_student = session.get('role') == 'student'
+    
+    if is_student:
+        my_participant = conn.execute('''
+            SELECT p.* FROM participants p
+            JOIN users u ON u.username = p.unique_id
+            WHERE u.id = ?
+        ''', (session['user_id'],)).fetchone()
+        
+        my_events = []
+        if my_participant:
+            event_rows = conn.execute('''
+                SELECT e.* FROM events e
+                JOIN participant_events pe ON e.id = pe.event_id
+                WHERE pe.participant_id = ?
+                ORDER BY e.event_date DESC
+            ''', (my_participant['id'],)).fetchall()
+            for row in event_rows:
+                my_events.append(dict(row))
+        
+        my_duties = []
+        if my_participant:
+            duty_rows = conn.execute('''
+                SELECT d.*, e.name as event_name FROM duties d
+                JOIN events e ON d.event_id = e.id
+                JOIN duty_personnel dp ON dp.name = ?
+                WHERE d.duty_person_id = dp.id
+                ORDER BY d.duty_date DESC
+            ''', (session['username'],)).fetchall()
+            for row in duty_rows:
+                my_duties.append(dict(row))
+        
+        conn.close()
+        
+        return render_template('reports.html',
+                             is_student=is_student,
+                             my_participant=dict(my_participant) if my_participant else None,
+                             my_events=my_events,
+                             my_duties=my_duties)
     
     total_events = conn.execute('SELECT COUNT(*) as count FROM events').fetchone()['count']
     total_participants = conn.execute('SELECT COUNT(*) as count FROM participants').fetchone()['count']
@@ -877,6 +1081,7 @@ def reports():
     conn.close()
     
     return render_template('reports.html',
+                         is_student=is_student,
                          total_events=total_events,
                          total_participants=total_participants,
                          total_duties=total_duties,

@@ -115,9 +115,15 @@
                     
                     <div class="info-alert">
                         <small>
-                            <i class="fas fa-info-circle"></i> 
+                            <i class="fas fa-info-circle"></i>
                             Participants can be assigned to events and duties after creation.
                         </small>
+                    </div>
+
+                    <div class="bulk-upload-link">
+                        <a href="{{ url_for('bulk_upload_participants') }}" class="btn-bulk">
+                            <i class="fas fa-upload"></i> Bulk Upload Participants
+                        </a>
                     </div>
                 </div>
             </div>
@@ -289,6 +295,35 @@
 .info-alert small {
     color: #007aff;
     font-weight: 500;
+}
+
+.bulk-upload-link {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.btn-bulk {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-bulk:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
 }
 
 @media (max-width: 768px) {

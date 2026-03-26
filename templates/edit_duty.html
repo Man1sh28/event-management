@@ -2,325 +2,106 @@
 
 {% block title %}Edit Duty - EvenZa{% endblock %}
 
-
-
 {% block content %}
-<div class="edit-duty-container">
-    <div class="page-header">
-        <h1><i class="fas fa-tasks"></i> Edit Duty</h1>
-        <div class="breadcrumb">
-            <a href="{{ url_for('dashboard') }}">Dashboard</a> / 
-            <a href="{{ url_for('duties') }}">Duties</a> / 
+<div class="page-header fade-in">
+    <div>
+        <h1><i class="fas fa-tasks"></i>Edit Duty</h1>
+        <div class="breadcrumb-simple">
+            <a href="{{ url_for('dashboard') }}">Dashboard</a> /
+            <a href="{{ url_for('duties') }}">Duties</a> /
             <span>Edit Duty</span>
         </div>
     </div>
+</div>
 
-    <div class="edit-duty-grid">
-        <div class="edit-duty-main">
-            <div class="form-card">
-                <div class="form-card-header">
-                    <h5>Duty Assignment Details</h5>
-                </div>
-                <div class="form-card-body">
-                    <form method="POST">
-                        <div class="form-field">
-                            <label for="event_id">Event *</label>
-                            <select id="event_id" name="event_id" required onchange="updateEventDetails()">
-                                {% for event in events %}
-                                    <option value="{{ event.id }}" {% if event.id == duty.event_id %}selected{% endif %}
-                                            data-date="{{ event.event_date }}" 
-                                            data-venue="{{ event.venue }}"
-                                            data-start="{{ event.start_time }}"
-                                            data-end="{{ event.end_time }}">
-                                        {{ event.name }} - {{ event.event_date }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <div class="form-field">
-                            <label for="user_id">Assign to Admin *</label>
-                            <select id="user_id" name="user_id" required>
-                                <option value="">Select Admin</option>
-                                {% for admin in admins %}
-                                    <option value="{{ admin.id }}" {% if admin.id == current_user_id %}selected{% endif %}>
-                                        {{ admin.username }} ({{ admin.role|capitalize }})
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <div class="form-field">
-                            <label for="duty_type">Duty Type *</label>
-                            <select id="duty_type" name="duty_type" required>
-                                <option value="supervision" {% if duty.duty_type == 'supervision' %}selected{% endif %}>Supervision</option>
-                                <option value="coordination" {% if duty.duty_type == 'coordination' %}selected{% endif %}>Coordination</option>
-                                <option value="judging" {% if duty.duty_type == 'judging' %}selected{% endif %}>Judging</option>
-                                <option value="logistics" {% if duty.duty_type == 'logistics' %}selected{% endif %}>Logistics</option>
-                                <option value="registration" {% if duty.duty_type == 'registration' %}selected{% endif %}>Registration</option>
-                                <option value="security" {% if duty.duty_type == 'security' %}selected{% endif %}>Security</option>
-                                <option value="other" {% if duty.duty_type == 'other' %}selected{% endif %}>Other</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-field">
-                            <label for="time_slot">Time Slot</label>
-                            <input type="text" id="time_slot" name="time_slot" 
-                                   value="{{ duty.time_slot or '' }}" placeholder="e.g., 9:00 AM - 12:00 PM">
-                        </div>
-                        
-                        <div class="form-field">
-                            <label for="location">Location</label>
-                            <input type="text" id="location" name="location" 
-                                   value="{{ duty.location or '' }}">
-                        </div>
-                        
-                        <div class="form-field">
-                            <label for="notes">Notes</label>
-                            <textarea id="notes" name="notes" rows="3">{{ duty.notes or '' }}</textarea>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <a href="{{ url_for('duties') }}" class="btn-secondary">Cancel</a>
-                            <button type="submit" class="btn-primary">
-                                <i class="fas fa-save"></i> Save Changes
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-        
-        <div class="edit-duty-sidebar">
-            <div class="info-card">
-                <div class="info-card-header">
-                    <h5>Duty Guidelines</h5>
-                </div>
-                <div class="info-card-body">
-                    <h6>Duty Types:</h6>
-                    <ul>
-                        <li><strong>Supervision:</strong> Monitor students during events</li>
-                        <li><strong>Coordination:</strong> Manage event logistics</li>
-                        <li><strong>Judging:</strong> Evaluate competitions</li>
-                        <li><strong>Logistics:</strong> Handle setup and materials</li>
-                        <li><strong>Registration:</strong> Check-in participants</li>
-                        <li><strong>Security:</strong> Ensure safety and order</li>
-                        <li><strong>Other:</strong> Any other responsibilities</li>
-                    </ul>
-                    
-                    <div class="info-alert">
-                        <small>
-                            <i class="fas fa-info-circle"></i> 
-                            Changes will be reflected immediately.
-                        </small>
+<div class="form-section">
+    <div>
+        <div class="form-card">
+            <div class="form-card-header"><h5>Duty Assignment Details</h5></div>
+            <div class="form-card-body">
+                <form method="POST">
+                    <div class="form-field">
+                        <label for="event_id">Event *</label>
+                        <select id="event_id" name="event_id" required onchange="updateEventDetails()">
+                            {% for event in events %}
+                            <option value="{{ event.id }}" {% if event.id == duty.event_id %}selected{% endif %}
+                                data-date="{{ event.event_date }}" data-venue="{{ event.venue }}"
+                                data-start="{{ event.start_time }}" data-end="{{ event.end_time }}">
+                                {{ event.name }} – {{ event.event_date }}
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
-                </div>
+                    <div class="form-field">
+                        <label for="user_id">Assign to Admin *</label>
+                        <select id="user_id" name="user_id" required>
+                            <option value="">Select Admin</option>
+                            {% for admin in admins %}
+                            <option value="{{ admin.id }}" {% if admin.id == current_user_id %}selected{% endif %}>
+                                {{ admin.username }} ({{ admin.role|capitalize }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label for="duty_type">Duty Type *</label>
+                        <select id="duty_type" name="duty_type" required>
+                            {% for t in ['supervision', 'coordination', 'judging', 'logistics', 'registration', 'security', 'other'] %}
+                            <option value="{{ t }}" {% if duty.duty_type == t %}selected{% endif %}>{{ t|capitalize }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label for="time_slot">Time Slot</label>
+                        <input type="text" id="time_slot" name="time_slot" value="{{ duty.time_slot or '' }}" placeholder="e.g., 9:00 AM – 12:00 PM">
+                    </div>
+                    <div class="form-field">
+                        <label for="location">Location</label>
+                        <input type="text" id="location" name="location" value="{{ duty.location or '' }}">
+                    </div>
+                    <div class="form-field">
+                        <label for="notes">Notes</label>
+                        <textarea id="notes" name="notes" rows="3">{{ duty.notes or '' }}</textarea>
+                    </div>
+                    <div class="form-actions">
+                        <a href="{{ url_for('duties') }}" class="action-btn secondary">Cancel</a>
+                        <button type="submit" class="action-btn"><i class="fas fa-save"></i>Save Changes</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
-<style>
-.edit-duty-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-}
+    <div>
+        <div class="info-card">
+            <div class="info-card-header"><h5>Duty Guidelines</h5></div>
+            <div class="info-card-body">
+                <h6>Duty Types</h6>
+                <ul>
+                    <li><strong>Supervision:</strong> Monitor students</li>
+                    <li><strong>Coordination:</strong> Manage logistics</li>
+                    <li><strong>Judging:</strong> Evaluate competitions</li>
+                    <li><strong>Logistics:</strong> Setup and materials</li>
+                    <li><strong>Registration:</strong> Check-in participants</li>
+                    <li><strong>Security:</strong> Ensure safety</li>
+                </ul>
+                <div class="info-alert">
+                    <small><i class="fas fa-info-circle"></i> Changes will be reflected immediately.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-.page-header {
-    margin-bottom: 30px;
-}
-
-.page-header h1 {
-    margin: 0 0 10px 0;
-    color: #333;
-    font-size: 2rem;
-}
-
-.breadcrumb {
-    font-size: 14px;
-    color: #666;
-}
-
-.breadcrumb a {
-    color: #007bff;
-    text-decoration: none;
-}
-
-.breadcrumb a:hover {
-    text-decoration: underline;
-}
-
-.edit-duty-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 30px;
-    align-items: start;
-}
-
-.edit-duty-main {
-    min-width: 0;
-}
-
-.edit-duty-sidebar {
-    min-width: 0;
-}
-
-.form-card, .info-card {
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
-}
-
-.form-card-header, .info-card-header {
-    background: #f8f9fa;
-    border-bottom: 1px solid #ddd;
-    padding: 15px 20px;
-    border-radius: 8px 8px 0 0;
-}
-
-.form-card-header h5, .info-card-header h5 {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-
-.form-card-body, .info-card-body {
-    padding: 20px;
-}
-
-.form-field {
-    margin-bottom: 20px;
-}
-
-.form-field label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 600;
-    color: #333;
-}
-
-.form-field input,
-.form-field select,
-.form-field textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 16px;
-    box-sizing: border-box;
-}
-
-.form-field input:focus,
-.form-field select:focus,
-.form-field textarea:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
-}
-
-.form-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 30px;
-}
-
-.btn-primary, .btn-secondary {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    font-size: 16px;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-    transition: background-color 0.2s;
-}
-
-.btn-primary {
-    background-color: #007bff;
-    color: white;
-}
-
-.btn-primary:hover {
-    background-color: #0056b3;
-}
-
-.btn-secondary {
-    background-color: #6c757d;
-    color: white;
-}
-
-.btn-secondary:hover {
-    background-color: #545b62;
-}
-
-.info-alert {
-    background-color: #d1ecf1;
-    border: 1px solid #bee5eb;
-    border-radius: 4px;
-    padding: 12px;
-    margin-top: 15px;
-}
-
-.info-alert small {
-    color: #0c5460;
-}
-
-.info-card-body ul {
-    padding-left: 20px;
-    margin: 10px 0;
-}
-
-.info-card-body h6 {
-    margin: 0 0 10px 0;
-    color: #333;
-}
-
-@media (max-width: 768px) {
-    .edit-duty-grid {
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-    
-    .form-actions {
-        flex-direction: column;
-    }
-    
-    .btn-primary, .btn-secondary {
-        width: 100%;
-        text-align: center;
-    }
-}
-</style>
-
+{% block scripts %}
 <script>
-function updateEventDetails() {
-    const select = document.getElementById('event_id');
-    const selectedOption = select.options[select.selectedIndex];
-    
-    if (selectedOption.value) {
-        // Populate time slot from event details
-        const startTime = selectedOption.dataset.start;
-        const endTime = selectedOption.dataset.end;
-        if (startTime && endTime) {
-            document.getElementById('time_slot').value = `${startTime} - ${endTime}`;
-        }
+    function updateEventDetails() {
+        const sel = document.getElementById('event_id');
+        const opt = sel.options[sel.selectedIndex];
+        const s = opt.dataset.start, e = opt.dataset.end;
+        const slot = document.getElementById('time_slot');
+        if (s && e && !slot.value) slot.value = `${s} - ${e}`;
     }
-}
-
-// Initialize time slot on page load if event is already selected
-window.addEventListener('load', function() {
-    const selectedEvent = document.getElementById('event_id');
-    if (selectedEvent.value) {
-        const selectedOption = selectedEvent.options[selectedEvent.selectedIndex];
-        const startTime = selectedOption.dataset.start;
-        const endTime = selectedOption.dataset.end;
-        if (startTime && endTime && !document.getElementById('time_slot').value) {
-            document.getElementById('time_slot').value = `${startTime} - ${endTime}`;
-        }
-    }
-});
 </script>
+{% endblock %}
 {% endblock %}

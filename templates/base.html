@@ -3,422 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}School Event Management{% endblock %}</title>
+    <title>{% block title %}EvenZa{% endblock %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f5f7;
-            color: #1d1d1f;
-        }
-        .apple-nav {
-            background: rgba(251, 251, 253, 0.94);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            z-index: 1000;
-            height: 60px;
-        }
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            font-size: 18px;
-            font-weight: 600;
-            color: #1d1d1f;
-            text-decoration: none;
-        }
-        .nav-brand i { font-size: 24px; color: #007aff; margin-right: 12px; }
-        .nav-menu { display: flex; align-items: center; gap: 8px; }
-        .nav-link {
-            display: flex; align-items: center;
-            padding: 8px 16px; border-radius: 8px;
-            text-decoration: none; color: #1d1d1f;
-            font-size: 14px; font-weight: 500;
-            transition: all 0.2s;
-        }
-        .nav-link i { font-size: 16px; margin-right: 8px; opacity: 0.8; }
-        .nav-link:hover { background: rgba(0,0,0,0.04); color: #007aff; }
-        .nav-link.active { background: #007aff; color: white; }
-        .nav-user {
-            display: flex;
-            align-items: center;
-        }
-        
-        /* Enhanced User Profile */
-        .user-profile {
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px 16px;
-            border-radius: 24px;
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            cursor: pointer;
-        }
-        
-        .user-profile:hover {
-            background: rgba(255, 255, 255, 0.8);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-            transform: translateY(-1px);
-        }
-        
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .user-avatar::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        
-        .user-profile:hover .user-avatar::before {
-            opacity: 1;
-        }
-        
-        .user-avatar i {
-            font-size: 20px;
-            color: white;
-            z-index: 1;
-            position: relative;
-        }
-        
-        .user-info {
-            display: flex;
-            flex-direction: column;
-            line-height: 1.2;
-        }
-        
-        .user-name {
-            font-size: 14px;
-            font-weight: 600;
-            color: #1d1d1f;
-            margin: 0;
-        }
-        
-        .user-role {
-            font-size: 12px;
-            color: #86868b;
-            margin: 0;
-        }
-        
-        .user-chevron {
-            font-size: 12px;
-            color: #86868b;
-            margin-left: 4px;
-            transition: transform 0.3s ease;
-        }
-        
-        .user-profile.show .user-chevron {
-            transform: rotate(180deg);
-        }
-
-        /* Enhanced Dropdown Menu */
-        .dropdown-menu {
-            position: absolute;
-            top: calc(100% + 8px);
-            right: 0;
-            z-index: 1050;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border-radius: 16px;
-            min-width: 220px;
-            padding: 8px;
-            display: none;
-            opacity: 0;
-            transform: translateY(-10px);
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            overflow: hidden;
-        }
-        
-        .dropdown-menu.show {
-            display: block;
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        .dropdown-header {
-            padding: 16px 12px 12px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-            margin-bottom: 8px;
-        }
-        
-        .dropdown-header h6 {
-            margin: 0;
-            font-size: 14px;
-            font-weight: 600;
-            color: #1d1d1f;
-        }
-        
-        .dropdown-header p {
-            margin: 4px 0 0;
-            font-size: 12px;
-            color: #86868b;
-        }
-        
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 16px;
-            border-radius: 8px;
-            text-decoration: none;
-            color: #1d1d1f;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            margin: 2px 0;
-        }
-        
-        .dropdown-item:hover {
-            background: rgba(0, 122, 255, 0.08);
-            color: #007aff;
-            transform: translateX(2px);
-        }
-        
-        .dropdown-item i {
-            width: 16px;
-            margin-right: 12px;
-            color: #007aff;
-        }
-        
-        .dropdown-divider {
-            height: 1px;
-            margin: 8px 0;
-            background-color: rgba(0, 0, 0, 0.08);
-        }
-        
-        .dropdown-toggle {
-            background: none;
-            border: none;
-            padding: 0;
-            outline: none;
-            cursor: pointer;
-        }
-        
-        .dropdown-toggle:focus {
-            box-shadow: none;
-        }
-        
-        /* Status indicators */
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #30d158;
-            position: absolute;
-            bottom: 2px;
-            right: 2px;
-            border: 2px solid white;
-        }
-        
-        .main-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .custom-alert {
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            border: 1px solid transparent;
-            border-radius: 12px;
-            position: relative;
-            font-size: 15px;
-            line-height: 1.5;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .custom-alert-success {
-            background-color: rgba(52, 199, 89, 0.1);
-            border-color: rgba(52, 199, 89, 0.2);
-            color: #34c759;
-        }
-        
-        .custom-alert-info {
-            background-color: rgba(0, 122, 255, 0.1);
-            border-color: rgba(0, 122, 255, 0.2);
-            color: #007aff;
-        }
-        
-        .custom-alert-warning {
-            background-color: rgba(255, 204, 0, 0.1);
-            border-color: rgba(255, 204, 0, 0.2);
-            color: #ffcc00;
-        }
-        
-        .custom-alert-danger {
-            background-color: rgba(255, 59, 48, 0.1);
-            border-color: rgba(255, 59, 48, 0.2);
-            color: #ff3b30;
-        }
-        
-        .alert-close {
-            background: none;
-            border: none;
-            font-size: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            color: inherit;
-            padding: 0;
-            margin-left: 10px;
-            opacity: 0.7;
-            transition: opacity 0.2s;
-        }
-        
-        .alert-close:hover {
-            opacity: 1;
-        }
-        
-        .auth-buttons {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        
-        .btn-outline {
-            padding: 8px 16px;
-            border: 1px solid #007aff;
-            background: transparent;
-            color: #007aff;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-        
-        .btn-outline:hover {
-            background: #007aff;
-            color: white;
-        }
-    </style>
 </head>
 <body>
     <nav class="apple-nav">
         <div class="nav-container">
-            <div class="nav-brand">
+            <a href="{{ url_for('dashboard') }}" class="nav-brand">
                 <i class="fas fa-graduation-cap"></i>
                 <span>EvenZa</span>
-            </div>
+            </a>
             <div class="nav-menu">
                 <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span>Dashboard</span>
+                    <i class="fas fa-tachometer-alt"></i><span>Dashboard</span>
                 </a>
                 <a href="{{ url_for('calendar_view') }}" class="nav-link {% if request.endpoint == 'calendar_view' %}active{% endif %}">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Calendar</span>
+                    <i class="fas fa-calendar-alt"></i><span>Calendar</span>
                 </a>
                 <a href="{{ url_for('events') }}" class="nav-link {% if request.endpoint == 'events' %}active{% endif %}">
-                    <i class="fas fa-calendar"></i>
-                    <span>Events</span>
+                    <i class="fas fa-calendar"></i><span>Events</span>
                 </a>
                 {% if session.role != 'student' %}
                 <a href="{{ url_for('participants') }}" class="nav-link {% if request.endpoint == 'participants' %}active{% endif %}">
-                    <i class="fas fa-users"></i>
-                    <span>Students</span>
+                    <i class="fas fa-users"></i><span>Students</span>
                 </a>
                 <a href="{{ url_for('duties') }}" class="nav-link {% if request.endpoint == 'duties' %}active{% endif %}">
-                    <i class="fas fa-tasks"></i>
-                    <span>Duties</span>
+                    <i class="fas fa-tasks"></i><span>Duties</span>
                 </a>
                 {% endif %}
                 <a href="{{ url_for('reports') }}" class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Reports</span>
+                    <i class="fas fa-chart-bar"></i><span>Reports</span>
                 </a>
             </div>
             <div class="nav-user">
                 {% if session.user_id %}
-                    <div class="dropdown">
-                        <div class="user-profile dropdown-toggle" id="userProfile" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="user-avatar">
-                                <i class="fas fa-user"></i>
-                                <div class="status-indicator"></div>
-                            </div>
-                            <div class="user-info">
-                                <div class="user-name">{{ session.username }}</div>
-                                <div class="user-role">{{ session.role|capitalize|replace('_', ' ') }}</div>
-                            </div>
-                            <i class="fas fa-chevron-down user-chevron"></i>
+                <div class="dropdown">
+                    <div class="user-profile dropdown-toggle" id="userProfile">
+                        <div class="user-avatar">
+                            <i class="fas fa-user"></i>
+                            <div class="status-indicator"></div>
                         </div>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userProfile">
-                            <li class="dropdown-header">
-                                <h6>{{ session.username }}</h6>
-                                <p>{{ session.role|capitalize|replace('_', ' ') }} Account</p>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}">
-                                <i class="fas fa-tachometer-alt"></i>Dashboard
-                            </a></li>
-                            {% if session.role == 'super_admin' %}
-                            <li><a class="dropdown-item" href="{{ url_for('manage_users') }}">
-                                <i class="fas fa-users-cog"></i>Manage Users
-                            </a></li>
-                            {% endif %}
-                            <li><a class="dropdown-item" href="{{ url_for('reports') }}">
-                                <i class="fas fa-chart-bar"></i>Reports
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">
-                                <i class="fas fa-sign-out-alt"></i>Logout
-                            </a></li>
-                        </ul>
+                        <div class="user-info">
+                            <div class="user-name">{{ session.username }}</div>
+                            <div class="user-role">{{ session.role|capitalize|replace('_', ' ') }}</div>
+                        </div>
+                        <i class="fas fa-chevron-down user-chevron"></i>
                     </div>
+                    <ul class="dropdown-menu" aria-labelledby="userProfile">
+                        <li class="dropdown-header">
+                            <h6>{{ session.username }}</h6>
+                            <p>{{ session.role|capitalize|replace('_', ' ') }} Account</p>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('dashboard') }}"><i class="fas fa-tachometer-alt"></i>Dashboard</a></li>
+                        {% if session.role == 'super_admin' %}
+                        <li><a class="dropdown-item" href="{{ url_for('manage_users') }}"><i class="fas fa-users-cog"></i>Manage Users</a></li>
+                        {% endif %}
+                        <li><a class="dropdown-item" href="{{ url_for('reports') }}"><i class="fas fa-chart-bar"></i>Reports</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i>Logout</a></li>
+                    </ul>
+                </div>
                 {% else %}
-                    <div class="auth-buttons">
-                        <a href="{{ url_for('login') }}" class="btn-outline">Login</a>
-                        <a href="{{ url_for('register') }}" class="btn-primary">Register</a>
-                    </div>
+                <div class="auth-buttons">
+                    <a href="{{ url_for('login') }}" class="btn-outline">Login</a>
+                    <a href="{{ url_for('register') }}" class="action-btn">Register</a>
+                </div>
                 {% endif %}
             </div>
         </div>
     </nav>
 
-    <div class="main-container" style="padding-top: 80px;">
+    <div class="main-container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="custom-alert custom-alert-{{ category }} show">
+                    <div class="custom-alert custom-alert-{{ category }}">
                         {{ message }}
                         <button type="button" class="alert-close" onclick="this.parentElement.remove()">&times;</button>
                     </div>
@@ -430,92 +92,37 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const userProfile = document.querySelector('.user-profile');
             const dropdownMenu = document.querySelector('.dropdown-menu');
-            
+
             if (userProfile && dropdownMenu) {
-                // Toggle dropdown
-                userProfile.addEventListener('click', function(e) {
+                userProfile.addEventListener('click', function (e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    
                     const isOpen = dropdownMenu.classList.contains('show');
-                    
-                    // Close all other dropdowns
-                    document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
-                        menu.classList.remove('show');
-                    });
-                    document.querySelectorAll('.user-profile.show').forEach(profile => {
-                        profile.classList.remove('show');
-                    });
-                    
+                    document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+                    document.querySelectorAll('.user-profile.show').forEach(p => p.classList.remove('show'));
                     if (!isOpen) {
                         dropdownMenu.classList.add('show');
                         userProfile.classList.add('show');
                     }
                 });
-                
-                // Close dropdown when clicking outside
-                document.addEventListener('click', function(e) {
+
+                document.addEventListener('click', function (e) {
                     if (!userProfile.contains(e.target) && !dropdownMenu.contains(e.target)) {
                         dropdownMenu.classList.remove('show');
                         userProfile.classList.remove('show');
                     }
                 });
-                
-                // Close dropdown with Escape key
-                document.addEventListener('keydown', function(e) {
+
+                document.addEventListener('keydown', function (e) {
                     if (e.key === 'Escape') {
                         dropdownMenu.classList.remove('show');
                         userProfile.classList.remove('show');
                     }
                 });
-                
-                // Add ripple effect on click
-                userProfile.addEventListener('mousedown', function(e) {
-                    const ripple = document.createElement('span');
-                    const rect = this.getBoundingClientRect();
-                    const size = Math.max(rect.width, rect.height);
-                    const x = e.clientX - rect.left - size / 2;
-                    const y = e.clientY - rect.top - size / 2;
-                    
-                    ripple.style.cssText = `
-                        position: absolute;
-                        width: ${size}px;
-                        height: ${size}px;
-                        left: ${x}px;
-                        top: ${y}px;
-                        background: rgba(0, 122, 255, 0.1);
-                        border-radius: 50%;
-                        transform: scale(0);
-                        animation: ripple 0.6s ease-out;
-                        pointer-events: none;
-                    `;
-                    
-                    this.style.position = 'relative';
-                    this.appendChild(ripple);
-                    
-                    setTimeout(() => ripple.remove(), 600);
-                });
             }
-            
-            // Add CSS for ripple animation
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes ripple {
-                    to {
-                        transform: scale(4);
-                        opacity: 0;
-                    }
-                }
-                
-                .user-profile {
-                    position: relative;
-                    overflow: hidden;
-                }
-            `;
-            document.head.appendChild(style);
         });
     </script>
     {% block scripts %}{% endblock %}

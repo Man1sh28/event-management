@@ -5,323 +5,126 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}EvenZa - Authentication{% endblock %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             align-items: flex-start;
             justify-content: center;
             padding: 20px;
-            position: relative;
             overflow-y: auto;
             overflow-x: hidden;
+            position: relative;
         }
-        
-        /* Floating background elements */
+
         body::before,
         body::after {
             content: '';
             position: absolute;
             border-radius: 50%;
             background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-            animation: float 20s infinite ease-in-out;
+            animation: floatBg 20s infinite ease-in-out;
             pointer-events: none;
         }
-        
+
         body::before {
-            width: 300px;
-            height: 300px;
-            top: -150px;
-            left: -150px;
-            animation-delay: 0s;
+            width: 300px; height: 300px;
+            top: -150px; left: -150px;
         }
-        
+
         body::after {
-            width: 200px;
-            height: 200px;
-            bottom: -100px;
-            right: -100px;
+            width: 200px; height: 200px;
+            bottom: -100px; right: -100px;
             animation-delay: 10s;
         }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
+
+        @keyframes floatBg {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
             25% { transform: translateY(-20px) rotate(90deg); }
-            50% { transform: translateY(0px) rotate(180deg); }
+            50% { transform: translateY(0) rotate(180deg); }
             75% { transform: translateY(20px) rotate(270deg); }
         }
-        
+
         .auth-container {
             width: 100%;
-            max-width: 420px;
+            max-width: 430px;
             z-index: 1;
             margin: 40px 0;
         }
-        
-        .auth-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 24px;
-            box-shadow: 
-                0 8px 32px rgba(0, 0, 0, 0.1),
-                0 1px 2px rgba(0, 0, 0, 0.06),
-                inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-            padding: 48px;
-            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            animation: fadeInUp 0.6s ease-out forwards;
-        }
-        
-        .auth-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 
-                0 16px 64px rgba(0, 0, 0, 0.15),
-                0 4px 8px rgba(0, 0, 0, 0.08),
-                inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .auth-header {
-            text-align: center;
-            margin-bottom: 2.5rem;
-        }
-        
-        .auth-header i {
-            font-size: 3.5rem;
-            color: #667eea;
-            margin-bottom: 1rem;
-            display: block;
-            animation: pulse 2s ease-in-out infinite;
-        }
-        
-        .auth-header h2 {
-            font-size: 2.25rem;
-            font-weight: 700;
-            color: #1d1d1f;
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.02em;
-        }
-        
-        .auth-header p {
-            font-size: 1.125rem;
-            color: #86868b;
-            font-weight: 400;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        
-        .form-label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: #1d1d1f;
-            font-size: 1rem;
-        }
-        
-        .input-group {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-        
-        .input-icon {
-            position: absolute;
-            left: 1rem;
-            z-index: 3;
-            color: #86868b;
-            font-size: 1.125rem;
-        }
-        
-        .form-control {
-            background: rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 16px;
-            padding: 1rem 1rem 1rem 3rem;
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            width: 100%;
-            font-size: 1rem;
-            color: #1d1d1f;
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-        }
-        
-        .form-control:focus {
-            background: rgba(255, 255, 255, 0.9);
-            border-color: #667eea;
-            outline: none;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-            transform: translateY(-1px);
-        }
-        
-        .form-control::placeholder {
-            color: #86868b;
-            opacity: 0.7;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 16px;
-            padding: 1rem 2rem;
-            font-weight: 700;
-            font-size: 1.125rem;
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            cursor: pointer;
-            color: white;
-            width: 100%;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
-        }
-        
-        .btn-primary::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.6s ease;
-        }
-        
-        .btn-primary:hover::before {
-            left: 100%;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
-        }
-        
-        .btn-primary:active {
-            transform: translateY(0) scale(0.98);
-        }
-        .auth-footer {
-            text-align: center;
-            margin-top: 2rem;
-        }
-        .auth-footer a {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 600;
-        }
-        .auth-footer a:hover {
-            text-decoration: underline;
-        }
-        
+
         .custom-alert {
-            padding: 16px 20px;
-            margin-bottom: 20px;
-            background-color: #cec7ba;
-            border: 1px solid transparent;
-            border-radius: 16px;
+            padding: 14px 18px;
+            margin-bottom: 16px;
+            border-radius: 14px;
             position: relative;
-            transition: all 0.3s ease;
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            animation: slideInDown 0.3s ease-out;
+            animation: slideDown 0.3s ease-out;
         }
-        
-        @keyframes slideInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-16px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        
+
         .custom-alert-success {
             color: #155724;
-            background-color: rgba(212, 237, 218, 0.9);
-            border-color: #c3e6cb;
+            background: rgba(212, 237, 218, 0.92);
+            border: 1px solid #c3e6cb;
         }
-        
-        .custom-alert-danger {
+
+        .custom-alert-danger,
+        .custom-alert-error {
             color: #fff;
             background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.95));
             border: 1px solid rgba(239, 68, 68, 0.4);
-            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            animation: shake 0.5s ease-in-out, pulse-red 2s infinite;
-            font-weight: 600;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 6px 22px rgba(239, 68, 68, 0.35);
+            animation: slideDown 0.3s ease-out, shake 0.5s ease-in-out;
         }
-        
-        @keyframes pulse-red {
-            0%, 100% { box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4); }
-            50% { box-shadow: 0 8px 25px rgba(239, 68, 68, 0.6), 0 0 20px rgba(239, 68, 68, 0.3); }
-        }
-        
+
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
             10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
             20%, 40%, 60%, 80% { transform: translateX(2px); }
         }
-        
+
         .custom-alert-warning {
-            color: #060400;
-            background-color: rgba(255, 243, 205, 0.9);
-            border-color: #ffeaa7;
+            color: #080400;
+            background: rgba(255, 243, 205, 0.92);
+            border: 1px solid #ffeaa7;
         }
-        
+
         .custom-alert-info {
             color: #0c5460;
-            background-color: rgba(209, 236, 241, 0.9);
-            border-color: #bee5eb;
+            background: rgba(209, 236, 241, 0.92);
+            border: 1px solid #bee5eb;
         }
-        
+
         .alert-close {
             position: absolute;
-            top: 12px;
-            right: 16px;
-            background: rgba(226, 53, 53, 0.2);
+            top: 10px;
+            right: 14px;
+            background: rgba(0, 0, 0, 0.1);
             border: none;
-            font-size: 18px;
+            font-size: 16px;
             cursor: pointer;
-            opacity: 0.7;
-            transition: all 0.2s;
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: inherit;
+            opacity: 0.7;
+            transition: opacity 0.2s;
         }
-        
+
         .alert-close:hover {
             opacity: 1;
         }
@@ -332,7 +135,7 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="custom-alert custom-alert-{{ category }} show mb-4" role="alert">
+                    <div class="custom-alert custom-alert-{{ category }}">
                         <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' if category == 'success' else 'info-circle' if category == 'info' else 'exclamation-circle' }}"></i>
                         <span>{{ message }}</span>
                         <button type="button" class="alert-close" onclick="this.parentElement.remove()">&times;</button>
@@ -340,11 +143,8 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-
         {% block content %}{% endblock %}
     </div>
-
-
     {% block scripts %}{% endblock %}
 </body>
 </html>

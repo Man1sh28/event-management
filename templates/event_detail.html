@@ -1,311 +1,237 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container py-4">
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('events') }}">Events</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ event.name }}</li>
-        </ol>
-    </nav>
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('events') }}">Events</a></li>
+        <li class="breadcrumb-item active">{{ event.name }}</li>
+    </ol>
+</nav>
 
-    <div class="row g-4">
-        <!-- Event Info Column -->
-        <div class="col-lg-8">
-            <!-- Hero Card -->
-            <div class="event-hero-card fade-in">
-                <div class="event-hero-accent"></div>
-                <div class="event-hero-body">
-                    <div class="event-hero-top">
-                        <h1 class="event-hero-title">{{ event.name }}</h1>
-                        <span class="event-type-badge">{{ event.type }}</span>
-                    </div>
-                    <div class="event-meta-grid">
-                        <div class="event-meta-item">
-                            <div class="event-meta-icon date-icon">
-                                <i class="fas fa-calendar-day"></i>
-                            </div>
-                            <div>
-                                <div class="event-meta-label">Date</div>
-                                <div class="event-meta-value">{{ event.event_date }}</div>
-                            </div>
-                        </div>
-                        <div class="event-meta-item">
-                            <div class="event-meta-icon time-icon">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div>
-                                <div class="event-meta-label">Time</div>
-                                <div class="event-meta-value">{{ event.start_time }} – {{ event.end_time }}</div>
-                            </div>
-                        </div>
-                        <div class="event-meta-item">
-                            <div class="event-meta-icon venue-icon">
-                                <i class="fas fa-map-marker-alt"></i>
-                            </div>
-                            <div>
-                                <div class="event-meta-label">Venue</div>
-                                <div class="event-meta-value">{{ event.venue }}</div>
-                            </div>
-                        </div>
-                        <div class="event-meta-item">
-                            <div class="event-meta-icon host-icon">
-                                <i class="fas fa-school"></i>
-                            </div>
-                            <div>
-                                <div class="event-meta-label">Host</div>
-                                <div class="event-meta-value">{{ event.host_school }}</div>
-                            </div>
-                        </div>
-                    </div>
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="event-hero-card fade-in">
+            <div class="event-hero-accent"></div>
+            <div class="event-hero-body">
+                <div class="event-hero-top">
+                    <h1 class="event-hero-title">{{ event.name }}</h1>
+                    <span class="event-type-badge">{{ event.type }}</span>
                 </div>
-            </div>
-
-            <!-- Description & Schools Section -->
-            <div class="event-description-card fade-in" style="animation-delay: 0.1s;">
-                <h3 class="event-section-title">
-                    <i class="fas fa-align-left"></i> Description
-                </h3>
-                <p class="event-description-text">{{ event.description or 'No description provided.' }}</p>
-
-                {% if event.participating_schools %}
-                <div style="margin-top: 24px;">
-                    <h3 class="event-section-title">
-                        <i class="fas fa-school"></i> Participating Schools
-                    </h3>
-                    <div class="event-schools-list">
-                        {% for school in event.participating_schools.split(',') %}
-                        <span class="school-tag">
-                            <i class="fas fa-circle"></i>
-                            {{ school.strip() }}
-                        </span>
-                        {% endfor %}
+                <div class="event-meta-grid">
+                    <div class="event-meta-item">
+                        <div class="event-meta-icon date-icon"><i class="fas fa-calendar-day"></i></div>
+                        <div>
+                            <div class="event-meta-label">Date</div>
+                            <div class="event-meta-value">{{ event.event_date }}</div>
+                        </div>
                     </div>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Participants & Duties Tabs -->
-            <div class="apple-card fade-in" style="animation-delay: 0.2s;">
-                <ul class="nav nav-tabs mb-3" id="eventTabs" role="tablist" style="padding: 0 32px;">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="participants-tab" data-bs-toggle="tab" data-bs-target="#participants" type="button" role="tab">
-                            <i class="fas fa-users" style="margin-right: 6px; font-size: 13px;"></i>Participants
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="duties-tab" data-bs-toggle="tab" data-bs-target="#duties" type="button" role="tab">
-                            <i class="fas fa-tasks" style="margin-right: 6px; font-size: 13px;"></i>Duties
-                        </button>
-                    </li>
-                </ul>
-                <div class="tab-content" id="eventTabsContent" style="padding: 0 32px 32px;">
-                    <div class="tab-pane fade show active" id="participants" role="tabpanel">
-                        <!-- Admin: Add student participant -->
-                        {% if session.role in ['admin', 'super_admin'] %}
-                        <div class="student-search-section">
-                            <div class="student-search-header">
-                                <h4 class="student-search-title">
-                                    <i class="fas fa-user-plus"></i> Add Student Participant
-                                </h4>
-                            </div>
-                            <div class="student-search-wrapper">
-                                <div class="student-search-input-wrap">
-                                    <i class="fas fa-search student-search-icon"></i>
-                                    <input type="text" 
-                                           id="student-search-input" 
-                                           class="student-search-input" 
-                                           placeholder="Search students by name..."
-                                           autocomplete="off">
-                                    <div id="student-search-spinner" class="student-search-spinner" style="display: none;">
-                                        <i class="fas fa-spinner fa-spin"></i>
-                                    </div>
-                                </div>
-                                <div id="student-search-results" class="student-search-results" style="display: none;"></div>
-                            </div>
-                            <!-- Hidden form for submission -->
-                            <form id="assign-student-form" action="{{ url_for('assign_participant', id=event.id) }}" method="POST" style="display: none;">
-                                <input type="hidden" name="user_id" id="assign-user-id">
-                            </form>
+                    <div class="event-meta-item">
+                        <div class="event-meta-icon time-icon"><i class="fas fa-clock"></i></div>
+                        <div>
+                            <div class="event-meta-label">Time</div>
+                            <div class="event-meta-value">{{ event.start_time }} – {{ event.end_time }}</div>
                         </div>
-                        {% endif %}
-
-                        {% if participants %}
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle" style="border-collapse: separate; border-spacing: 0;">
-                                <thead>
-                                    <tr style="background: #f8f9fb;">
-                                        <th style="padding: 14px 16px; font-size: 12px; font-weight: 700; color: #86868b; text-transform: uppercase; letter-spacing: 0.06em; border: none; border-radius: 8px 0 0 8px;">Name</th>
-                                        <th style="padding: 14px 16px; font-size: 12px; font-weight: 700; color: #86868b; text-transform: uppercase; letter-spacing: 0.06em; border: none;">Class/Dept</th>
-                                        <th style="padding: 14px 16px; font-size: 12px; font-weight: 700; color: #86868b; text-transform: uppercase; letter-spacing: 0.06em; border: none; border-radius: 0 8px 8px 0;">School</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for p in participants %}
-                                    <tr style="border-bottom: 1px solid rgba(0,0,0,0.04);">
-                                        <td style="padding: 14px 16px; font-weight: 500; border: none;">{{ p.name }}</td>
-                                        <td style="padding: 14px 16px; color: #3a3a3c; border: none;">{{ p.class_dept }}</td>
-                                        <td style="padding: 14px 16px; color: #3a3a3c; border: none;">{{ p.school }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% else %}
-                        <p style="color: #86868b; text-align: center; padding: 40px 0; font-size: 15px;">No participants assigned to this event.</p>
-                        {% endif %}
                     </div>
-                    <div class="tab-pane fade" id="duties" role="tabpanel">
-                        {% if duties %}
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle" style="border-collapse: separate; border-spacing: 0;">
-                                <thead>
-                                    <tr style="background: #f8f9fb;">
-                                        <th style="padding: 14px 16px; font-size: 12px; font-weight: 700; color: #86868b; text-transform: uppercase; letter-spacing: 0.06em; border: none; border-radius: 8px 0 0 8px;">Assigned To</th>
-                                        <th style="padding: 14px 16px; font-size: 12px; font-weight: 700; color: #86868b; text-transform: uppercase; letter-spacing: 0.06em; border: none;">Duty Type</th>
-                                        <th style="padding: 14px 16px; font-size: 12px; font-weight: 700; color: #86868b; text-transform: uppercase; letter-spacing: 0.06em; border: none;">Location</th>
-                                        <th style="padding: 14px 16px; font-size: 12px; font-weight: 700; color: #86868b; text-transform: uppercase; letter-spacing: 0.06em; border: none; border-radius: 0 8px 8px 0;">Time</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for d in duties %}
-                                    <tr style="border-bottom: 1px solid rgba(0,0,0,0.04);">
-                                        <td style="padding: 14px 16px; border: none;">
-                                            <strong>{{ d.person_name }}</strong><br>
-                                            <small style="color: #86868b;">{{ d.designation }}</small>
-                                        </td>
-                                        <td style="padding: 14px 16px; color: #3a3a3c; border: none;">{{ d.duty_type }}</td>
-                                        <td style="padding: 14px 16px; color: #3a3a3c; border: none;">{{ d.location }}</td>
-                                        <td style="padding: 14px 16px; color: #3a3a3c; border: none;">{{ d.start_time }} - {{ d.end_time }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                    <div class="event-meta-item">
+                        <div class="event-meta-icon venue-icon"><i class="fas fa-map-marker-alt"></i></div>
+                        <div>
+                            <div class="event-meta-label">Venue</div>
+                            <div class="event-meta-value">{{ event.venue }}</div>
                         </div>
-                        {% else %}
-                        <p style="color: #86868b; text-align: center; padding: 40px 0; font-size: 15px;">No duties assigned for this event.</p>
-                        {% endif %}
+                    </div>
+                    <div class="event-meta-item">
+                        <div class="event-meta-icon host-icon"><i class="fas fa-school"></i></div>
+                        <div>
+                            <div class="event-meta-label">Host</div>
+                            <div class="event-meta-value">{{ event.host_school }}</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Chat Column -->
-        <div class="col-lg-4">
-            <div class="chat-panel fade-in" style="animation-delay: 0.15s;">
-                <!-- Chat Header -->
-                <div class="chat-panel-header">
-                    <div class="chat-panel-header-icon">
-                        <i class="fas fa-comments"></i>
-                    </div>
-                    <div class="chat-panel-header-text">
-                        <h2>Event Chat</h2>
-                        <p>{{ announcements|length if announcements else 0 }} message{{ 's' if not announcements or announcements|length != 1 else '' }}</p>
-                    </div>
-                </div>
-
-                <!-- Chat Messages -->
-                {% if announcements %}
-                <div class="chat-messages" id="chat-box">
-                    {% for msg in announcements %}
-                    <div class="chat-msg {% if msg.author == session.username %}sent{% else %}received{% endif %}">
-                        <div class="chat-msg-bubble">
-                            <div class="chat-msg-sender">{{ msg.author }}</div>
-                            <p class="chat-msg-text">{{ msg.content }}</p>
-                        </div>
-                        <div class="chat-msg-time">{{ msg.created_at[11:16] }}</div>
-                    </div>
+        <div class="event-description-card fade-in">
+            <h3 class="event-section-title"><i class="fas fa-align-left"></i>Description</h3>
+            <p class="event-description-text">{{ event.description or 'No description provided.' }}</p>
+            {% if event.participating_schools %}
+            <div style="margin-top:20px;">
+                <h3 class="event-section-title"><i class="fas fa-school"></i>Participating Schools</h3>
+                <div class="event-schools-list">
+                    {% for school in event.participating_schools.split(',') %}
+                    <span class="school-tag"><i class="fas fa-circle"></i>{{ school.strip() }}</span>
                     {% endfor %}
                 </div>
-                {% else %}
-                <div class="chat-empty-state">
-                    <div class="chat-empty-icon">
-                        <i class="fas fa-comments"></i>
-                    </div>
-                    <h5>No messages yet</h5>
-                    <p>Start the conversation by<br>sending a message!</p>
-                </div>
-                {% endif %}
-
-                <!-- Chat Input -->
-                {% if session.role in ['admin', 'super_admin'] %}
-                <div class="chat-input-wrapper">
-                    <form action="{{ url_for('add_announcement') }}" method="POST" class="chat-input-row" id="chat-form">
-                        <input type="hidden" name="event_id" value="{{ event.id }}">
-                        <input type="hidden" name="title" value="Update for {{ event.name }}">
-                        <div class="input-wrapper">
-                            <input type="text" name="content" class="chat-input" 
-                                   placeholder="Type a message..." required autocomplete="off"
-                                   id="chat-input">
-                            <button type="button" class="emoji-btn" onclick="toggleEmojiPicker()" title="Add emoji">
-                                <i class="fas fa-smile"></i>
-                            </button>
-                        </div>
-                        <button type="submit" class="chat-send-btn" id="send-btn">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </form>
-                    <div class="emoji-picker" id="emoji-picker" style="display: none;">
-                        <div class="emoji-grid">
-                            <span class="emoji" onclick="addEmoji('😊')">😊</span>
-                            <span class="emoji" onclick="addEmoji('👍')">👍</span>
-                            <span class="emoji" onclick="addEmoji('❤️')">❤️</span>
-                            <span class="emoji" onclick="addEmoji('🎉')">🎉</span>
-                            <span class="emoji" onclick="addEmoji('📅')">📅</span>
-                            <span class="emoji" onclick="addEmoji('📍')">📍</span>
-                            <span class="emoji" onclick="addEmoji('✅')">✅</span>
-                            <span class="emoji" onclick="addEmoji('⚠️')">⚠️</span>
-                            <span class="emoji" onclick="addEmoji('📝')">📝</span>
-                            <span class="emoji" onclick="addEmoji('🎓')">🎓</span>
-                            <span class="emoji" onclick="addEmoji('🏆')">🏆</span>
-                            <span class="emoji" onclick="addEmoji('🔥')">🔥</span>
-                        </div>
-                    </div>
-                </div>
-                {% else %}
-                <div class="chat-input-wrapper">
-                    <div class="non-admin-message">
-                        <i class="fas fa-lock"></i>
-                        <span>Only administrators can send messages</span>
-                    </div>
-                </div>
-                {% endif %}
             </div>
+            {% endif %}
+        </div>
+
+        <div class="apple-card fade-in">
+            <ul class="nav-tabs" style="padding:0 28px;">
+                <li>
+                    <button class="nav-link active" data-target="#participants">
+                        <i class="fas fa-users" style="margin-right:6px;font-size:12px;"></i>Participants
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-link" data-target="#duties">
+                        <i class="fas fa-tasks" style="margin-right:6px;font-size:12px;"></i>Duties
+                    </button>
+                </li>
+            </ul>
+            <div style="padding:0 28px 28px;">
+                <div id="participants" class="tab-pane active">
+                    {% if session.role in ['admin', 'super_admin'] %}
+                    <div class="student-search-section">
+                        <h4 class="student-search-title"><i class="fas fa-user-plus"></i>Add Student Participant</h4>
+                        <div class="student-search-wrapper" style="position:relative;">
+                            <div class="student-search-input-wrap">
+                                <i class="fas fa-search student-search-icon"></i>
+                                <input type="text" id="student-search-input" class="student-search-input" placeholder="Search students by name..." autocomplete="off">
+                                <div id="student-search-spinner" class="student-search-spinner" style="display:none;"><i class="fas fa-spinner fa-spin"></i></div>
+                            </div>
+                            <div id="student-search-results" class="student-search-results" style="display:none;"></div>
+                        </div>
+                        <form id="assign-student-form" action="{{ url_for('assign_participant', id=event.id) }}" method="POST" style="display:none;">
+                            <input type="hidden" name="user_id" id="assign-user-id">
+                        </form>
+                    </div>
+                    {% endif %}
+
+                    {% if participants %}
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Class/Dept</th>
+                                    <th>School</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in participants %}
+                                <tr>
+                                    <td style="font-weight:500;">{{ p.name }}</td>
+                                    <td style="color:var(--muted);">{{ p.class_dept }}</td>
+                                    <td style="color:var(--muted);">{{ p.school }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p style="color:var(--muted);text-align:center;padding:36px 0;font-size:14px;">No participants assigned to this event.</p>
+                    {% endif %}
+                </div>
+
+                <div id="duties" class="tab-pane">
+                    {% if duties %}
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Assigned To</th>
+                                    <th>Duty Type</th>
+                                    <th>Location</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in duties %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ d.person_name }}</strong><br>
+                                        <small style="color:var(--muted);">{{ d.designation }}</small>
+                                    </td>
+                                    <td style="color:var(--muted);">{{ d.duty_type }}</td>
+                                    <td style="color:var(--muted);">{{ d.location }}</td>
+                                    <td style="color:var(--muted);">{{ d.start_time }} – {{ d.end_time }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p style="color:var(--muted);text-align:center;padding:36px 0;font-size:14px;">No duties assigned for this event.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="chat-panel fade-in">
+            <div class="chat-panel-header">
+                <div class="chat-panel-header-icon"><i class="fas fa-comments"></i></div>
+                <div class="chat-panel-header-text">
+                    <h2>Event Chat</h2>
+                    <p>{{ announcements|length if announcements else 0 }} message{{ 's' if not announcements or announcements|length != 1 else '' }}</p>
+                </div>
+            </div>
+
+            {% if announcements %}
+            <div class="chat-messages" id="chat-box">
+                {% for msg in announcements %}
+                <div class="chat-msg {% if msg.author == session.username %}sent{% else %}received{% endif %}">
+                    <div class="chat-msg-bubble">
+                        <div class="chat-msg-sender">{{ msg.author }}</div>
+                        <p class="chat-msg-text">{{ msg.content }}</p>
+                    </div>
+                    <div class="chat-msg-time">{{ msg.created_at[11:16] }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="chat-empty-state">
+                <div class="chat-empty-icon"><i class="fas fa-comments"></i></div>
+                <h5>No messages yet</h5>
+                <p>Start the conversation by sending a message!</p>
+            </div>
+            {% endif %}
+
+            {% if session.role in ['admin', 'super_admin'] %}
+            <div class="chat-input-wrapper">
+                <form action="{{ url_for('add_announcement') }}" method="POST" class="chat-input-row" id="chat-form">
+                    <input type="hidden" name="event_id" value="{{ event.id }}">
+                    <input type="hidden" name="title" value="Update for {{ event.name }}">
+                    <div class="input-wrapper" style="position:relative;">
+                        <input type="text" name="content" class="chat-input" placeholder="Type a message..." required autocomplete="off" id="chat-input">
+                        <button type="button" class="emoji-btn" onclick="toggleEmojiPicker()"><i class="fas fa-smile"></i></button>
+                        <div class="emoji-picker" id="emoji-picker" style="display:none;">
+                            <div class="emoji-grid">
+                                {% for e in ['😊','👍','❤️','🎉','📅','📍','✅','⚠️','📝','🎓','🏆','🔥'] %}
+                                <span class="emoji" onclick="addEmoji('{{ e }}')">{{ e }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="chat-send-btn"><i class="fas fa-paper-plane"></i></button>
+                </form>
+            </div>
+            {% else %}
+            <div class="chat-input-wrapper">
+                <div class="non-admin-message"><i class="fas fa-lock"></i><span>Only administrators can send messages</span></div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
+{% block scripts %}
 <script>
-    // Auto-scroll to bottom of chat
     const chatBox = document.getElementById('chat-box');
-    if (chatBox) {
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
+    if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
 
-    // Tab switching logic
     document.querySelectorAll('.nav-tabs .nav-link').forEach(tab => {
-        tab.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Remove active class from all tabs and panes
+        tab.addEventListener('click', function () {
             document.querySelectorAll('.nav-tabs .nav-link').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('show', 'active'));
-            
-            // Add active class to clicked tab
             this.classList.add('active');
-            
-            // Show the corresponding pane
-            const targetId = this.getAttribute('data-bs-target');
-            const targetPane = document.querySelector(targetId);
-            if (targetPane) {
-                targetPane.classList.add('show', 'active');
-            }
+            const target = document.querySelector(this.dataset.target);
+            if (target) target.classList.add('show', 'active');
         });
     });
 
-    // Chat enhancements
     function toggleEmojiPicker() {
         const picker = document.getElementById('emoji-picker');
         picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
@@ -318,161 +244,72 @@
         document.getElementById('emoji-picker').style.display = 'none';
     }
 
-    // Close emoji picker when clicking outside
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         const picker = document.getElementById('emoji-picker');
-        const emojiBtn = document.querySelector('.emoji-btn');
-        if (picker && emojiBtn && !picker.contains(e.target) && !emojiBtn.contains(e.target)) {
+        const btn = document.querySelector('.emoji-btn');
+        if (picker && btn && !picker.contains(e.target) && !btn.contains(e.target)) {
             picker.style.display = 'none';
         }
     });
 
-    // Auto-resize input based on content
-    const chatInput = document.getElementById('chat-input');
-    if (chatInput) {
-        chatInput.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = this.scrollHeight + 'px';
-        });
-    }
-
-    // Add typing indicator (simple version)
-    let typingTimer;
-    const chatForm = document.getElementById('chat-form');
-    
-    if (chatForm) {
-        chatInput.addEventListener('input', function() {
-            clearTimeout(typingTimer);
-        });
-
-        chatForm.addEventListener('submit', function(e) {
-            // Add a sending animation
-            const sendBtn = document.getElementById('send-btn');
-            const originalIcon = sendBtn.innerHTML;
-            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            sendBtn.disabled = true;
-
-            // Re-enable after a short delay (simulating send)
-            setTimeout(() => {
-                sendBtn.innerHTML = originalIcon;
-                sendBtn.disabled = false;
-            }, 1000);
-        });
-    }
-
-    // ===== Student Search for Participant Assignment =====
     const studentSearchInput = document.getElementById('student-search-input');
     const studentSearchResults = document.getElementById('student-search-results');
     const studentSearchSpinner = document.getElementById('student-search-spinner');
-    const assignForm = document.getElementById('assign-student-form');
-    const assignUserId = document.getElementById('assign-user-id');
     let searchDebounce = null;
 
     if (studentSearchInput) {
-        studentSearchInput.addEventListener('input', function() {
-            const query = this.value.trim();
+        studentSearchInput.addEventListener('input', function () {
             clearTimeout(searchDebounce);
-
-            if (query.length === 0) {
-                // Show all students when input is focused but empty
-                searchDebounce = setTimeout(() => searchStudents(''), 200);
-                return;
-            }
-
-            studentSearchSpinner.style.display = 'flex';
-            searchDebounce = setTimeout(() => searchStudents(query), 300);
+            const q = this.value.trim();
+            if (studentSearchSpinner) studentSearchSpinner.style.display = 'flex';
+            searchDebounce = setTimeout(() => searchStudents(q), 300);
         });
 
-        studentSearchInput.addEventListener('focus', function() {
-            if (this.value.trim().length === 0) {
-                searchStudents('');
-            } else if (studentSearchResults.innerHTML) {
-                studentSearchResults.style.display = 'block';
-            }
+        studentSearchInput.addEventListener('focus', function () {
+            searchStudents(this.value.trim());
         });
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(e) {
+        document.addEventListener('click', function (e) {
             if (studentSearchResults && studentSearchInput &&
-                !studentSearchResults.contains(e.target) && 
-                !studentSearchInput.contains(e.target)) {
+                !studentSearchResults.contains(e.target) && !studentSearchInput.contains(e.target)) {
                 studentSearchResults.style.display = 'none';
             }
         });
     }
 
-    function searchStudents(query) {
-        const eventId = {{ event.id }};
-        fetch(`/api/search_students?q=${encodeURIComponent(query)}&event_id=${eventId}`)
-            .then(res => res.json())
+    function searchStudents(q) {
+        fetch(`/api/search_students?q=${encodeURIComponent(q)}&event_id={{ event.id }}`)
+            .then(r => r.json())
             .then(data => {
-                studentSearchSpinner.style.display = 'none';
+                if (studentSearchSpinner) studentSearchSpinner.style.display = 'none';
                 renderSearchResults(data);
-            })
-            .catch(err => {
-                studentSearchSpinner.style.display = 'none';
-                console.error('Search error:', err);
             });
     }
 
     function renderSearchResults(students) {
         if (!students.length) {
-            studentSearchResults.innerHTML = `
-                <div class="student-search-empty">
-                    <i class="fas fa-user-slash"></i>
-                    <span>No student users found</span>
-                </div>`;
+            studentSearchResults.innerHTML = `<div class="student-search-empty"><i class="fas fa-user-slash"></i><span>No students found</span></div>`;
             studentSearchResults.style.display = 'block';
             return;
         }
-
         let html = '';
         students.forEach(s => {
             if (s.already_assigned) {
-                html += `
-                    <div class="student-search-item assigned">
-                        <div class="student-search-item-info">
-                            <div class="student-search-avatar">
-                                <i class="fas fa-user-graduate"></i>
-                            </div>
-                            <div>
-                                <div class="student-search-name">${s.username}</div>
-                                <div class="student-search-role">Student</div>
-                            </div>
-                        </div>
-                        <span class="student-assigned-badge">
-                            <i class="fas fa-check-circle"></i> Assigned
-                        </span>
-                    </div>`;
+                html += `<div class="student-search-item assigned"><div class="student-search-item-info"><div class="student-search-avatar"><i class="fas fa-user-graduate"></i></div><div><div class="student-search-name">${s.username}</div><div class="student-search-role">Student</div></div></div><span class="student-assigned-badge"><i class="fas fa-check-circle"></i> Assigned</span></div>`;
             } else {
-                html += `
-                    <div class="student-search-item" onclick="assignStudent(${s.id}, '${s.username}')">
-                        <div class="student-search-item-info">
-                            <div class="student-search-avatar">
-                                <i class="fas fa-user-graduate"></i>
-                            </div>
-                            <div>
-                                <div class="student-search-name">${s.username}</div>
-                                <div class="student-search-role">Student</div>
-                            </div>
-                        </div>
-                        <span class="student-add-badge">
-                            <i class="fas fa-plus-circle"></i> Add
-                        </span>
-                    </div>`;
+                html += `<div class="student-search-item" onclick="assignStudent(${s.id}, '${s.username}')"><div class="student-search-item-info"><div class="student-search-avatar"><i class="fas fa-user-graduate"></i></div><div><div class="student-search-name">${s.username}</div><div class="student-search-role">Student</div></div></div><span class="student-add-badge"><i class="fas fa-plus-circle"></i> Add</span></div>`;
             }
         });
-
         studentSearchResults.innerHTML = html;
         studentSearchResults.style.display = 'block';
     }
 
     function assignStudent(userId, username) {
-        if (confirm(`Assign "${username}" as a participant to this event?`)) {
-            assignUserId.value = userId;
-            assignForm.submit();
+        if (confirm(`Assign "${username}" to this event?`)) {
+            document.getElementById('assign-user-id').value = userId;
+            document.getElementById('assign-student-form').submit();
         }
     }
 </script>
-
+{% endblock %}
 {% endblock %}

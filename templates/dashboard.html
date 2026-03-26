@@ -3,1363 +3,266 @@
 {% block title %}Dashboard - EvenZa{% endblock %}
 
 {% block content %}
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f5f7;
-            color: #1d1d1f;
-            line-height: 1.47059;
-            font-weight: 400;
-            letter-spacing: -.022em;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        /* Apple Navigation Bar */
-        .apple-nav {
-            background: rgba(251, 251, 253, 0.94);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            height: 60px;
-        }
-
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            font-size: 18px;
-            font-weight: 600;
-            color: #1d1d1f;
-            text-decoration: none;
-        }
-
-        .nav-brand i {
-            font-size: 24px;
-            color: #007aff;
-            margin-right: 12px;
-        }
-
-        .nav-menu {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .nav-link {
-            display: flex;
-            align-items: center;
-            padding: 8px 16px;
-            border-radius: 8px;
-            text-decoration: none;
-            color: #1d1d1f;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            position: relative;
-        }
-
-        .nav-link i {
-            font-size: 16px;
-            margin-right: 8px;
-            opacity: 0.8;
-        }
-
-        .nav-link:hover {
-            background: rgba(0, 0, 0, 0.04);
-            color: #007aff;
-        }
-
-        .nav-link.active {
-            background: #007aff;
-            color: white;
-        }
-
-        .nav-link.active i {
-            opacity: 1;
-        }
-
-        .nav-user {
-            display: flex;
-            align-items: center;
-        }
-
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: #f2f2f7;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .user-avatar:hover {
-            background: #e5e5ea;
-        }
-
-        .user-avatar i {
-            font-size: 20px;
-            color: #007aff;
-        }
-
-        /* Enhanced Main Content */
-        .main-content {
-            padding: 100px 0;
-            background: linear-gradient(180deg, #f5f5f7 0%, #ffffff 100%);
-        }
-
-        .section {
-            margin-bottom: 100px;
-            position: relative;
-        }
-
-        .section-header {
-            margin-bottom: 48px;
-            text-align: center;
-        }
-
-        .section-header h2 {
-            font-size: 36px;
-            font-weight: 700;
-            color: #1d1d1f;
-            margin-bottom: 12px;
-            letter-spacing: -0.02em;
-            background: linear-gradient(135deg, #1d1d1f 0%, #007aff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .section-header p {
-            font-size: 18px;
-            color: #86868b;
-            font-weight: 400;
-            line-height: 1.52947;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        /* Header */
-        .main-header {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-            padding: 120px 0 40px; /* Added top padding for nav */
-            margin-bottom: 60px;
-            position: sticky;
-            top: 60px; /* Stick below nav */
-            z-index: 100;
-        }
-
-        .main-header h1 {
-            font-size: 48px;
-            font-weight: 600;
-            letter-spacing: -.003em;
-            margin-bottom: 12px;
-            color: #1d1d1f;
-        }
-
-        .main-header p {
-            font-size: 21px;
-            font-weight: 400;
-            color: #86868b;
-            letter-spacing: .011em;
-        }
-
-        .main-header i {
-            margin-right: 16px;
-            color: #007aff;
-        }
-
-        /* Enhanced Stats Cards */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 32px;
-            margin-bottom: 80px;
-        }
-
-        .stat-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            padding: 32px;
-            box-shadow: 
-                0 8px 32px rgba(0, 0, 0, 0.1),
-                0 1px 2px rgba(0, 0, 0, 0.06),
-                inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, transparent 0%, rgba(0, 122, 255, 0.05) 100%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .stat-card:hover::before {
-            opacity: 1;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-4px) scale(1.02);
-            box-shadow: 
-                0 12px 48px rgba(0, 0, 0, 0.15),
-                0 4px 8px rgba(0, 0, 0, 0.08),
-                inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-        }
-
-        .stat-card .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, #007aff 0%, #0056b3 100%);
-            color: white;
-            box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
-        }
-
-        .stat-card:hover::before {
-            opacity: 1;
-        }
-
-        .stat-card-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: relative;
-            z-index: 2;
-        }
-
-        .stat-number {
-            font-size: 56px;
-            font-weight: 600;
-            letter-spacing: -.005em;
-            margin-bottom: 8px;
-            background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .stat-label {
-            font-size: 17px;
-            color: #86868b;
-            font-weight: 500;
-        }
-
-        .stat-icon {
-            font-size: 40px;
-            color: #007aff;
-            opacity: 0.8;
-        }
-
-        
-        .content-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 40px;
-            margin-bottom: 80px;
-        }
-
-    
-        .apple-card {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border-radius: 24px;
-            border: 1px solid rgba(0, 0, 0, 0.04);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-
-        .apple-card:hover {
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-        }
-
-        .card-header {
-            padding: 32px 32px 24px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-        }
-
-        .card-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: #1d1d1f;
-            display: flex;
-            align-items: center;
-            letter-spacing: .009em;
-        }
-
-        .card-title i {
-            margin-right: 12px;
-            color: #007aff;
-            font-size: 20px;
-        }
-
-        .card-body {
-            padding: 32px;
-        }
-
-       
-        .event-list {
-            list-style: none;
-        }
-
-        .event-item {
-            padding: 24px 0;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-            transition: all 0.3s ease;
-        }
-
-        .event-item:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-
-        .event-item:hover {
-            background: rgba(0, 122, 255, 0.02);
-            margin: 0 -24px;
-            padding-left: 24px;
-            padding-right: 24px;
-            border-radius: 12px;
-        }
-
-        .event-header {
-            display: flex;
-            justify-content: between;
-            align-items: flex-start;
-            margin-bottom: 8px;
-        }
-
-        .event-name {
-            font-size: 17px;
-            font-weight: 600;
-            color: #1d1d1f;
-            flex: 1;
-        }
-
-        .event-date {
-            font-size: 15px;
-            color: #86868b;
-            font-weight: 500;
-        }
-
-        .event-details {
-            font-size: 15px;
-            color: #86868b;
-            margin-bottom: 4px;
-        }
-
-        .event-details i {
-            margin-right: 8px;
-            width: 14px;
-        }
-
-        .event-host {
-            font-size: 13px;
-            color: #86868b;
-            font-weight: 500;
-        }
-
-       
-        .action-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .action-btn {
-            background: rgba(0, 122, 255, 0.9);
-            color: white;
-            text-decoration: none;
-            padding: 20px 28px;
-            border-radius: 16px;
-            font-size: 18px;
-            font-weight: 600;
-            text-align: center;
-            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            border: none;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            box-shadow: 0 4px 16px rgba(0, 122, 255, 0.2);
-        }
-
-        .action-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            transition: left 0.6s ease;
-        }
-
-        .action-btn:hover::before {
-            left: 100%;
-        }
-
-        .action-btn:hover {
-            transform: translateY(-4px) scale(1.02);
-            box-shadow: 0 12px 40px rgba(0, 122, 255, 0.4);
-            background: #007aff;
-        }
-
-        .action-btn:active {
-            transform: translateY(-2px) scale(0.98);
-        }
-
-        .action-btn.success {
-            background: rgba(52, 199, 89, 0.9);
-            box-shadow: 0 4px 16px rgba(52, 199, 89, 0.2);
-        }
-
-        .action-btn.success:hover {
-            background: #34c759;
-            box-shadow: 0 12px 40px rgba(52, 199, 89, 0.4);
-        }
-
-        .action-btn.warning {
-            background: rgba(255, 149, 0, 0.9);
-            box-shadow: 0 4px 16px rgba(255, 149, 0, 0.2);
-        }
-
-        .action-btn.warning:hover {
-            background: #ff9500;
-            box-shadow: 0 12px 40px rgba(255, 149, 0, 0.4);
-        }
-
-        .action-btn.secondary {
-            background: rgba(142, 142, 147, 0.9);
-            box-shadow: 0 4px 16px rgba(142, 142, 147, 0.2);
-        }
-
-        .action-btn.secondary:hover {
-            background: #8e8e93;
-            box-shadow: 0 12px 40px rgba(142, 142, 147, 0.4);
-        }
-
-        .action-btn i {
-            margin-right: 12px;
-            font-size: 20px;
-        }
-
-       
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #86868b;
-            font-size: 17px;
-        }
-
-        .empty-state i {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-
-        /* Removed redundant animation definitions */
-
-       
-        body {
-            background: linear-gradient(135deg, #f5f5f7 0%, #f0f0f2 100%);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
-        }
-
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .stat-card::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(0, 122, 255, 0.03) 0%, transparent 70%);
-            animation: pulse 8s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(0.8); opacity: 0; }
-            50% { transform: scale(1.2); opacity: 1; }
-        }
-
-        .apple-card {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .apple-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            animation: shimmer 6s infinite;
-            pointer-events: none;
-        }
-
-        @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-
-        
-        .container::before,
-        .container::after {
-            content: '';
-            position: fixed;
-            width: 200px;
-            height: 200px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(0, 122, 255, 0.05) 0%, transparent 70%);
-            animation: float 20s infinite ease-in-out;
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        .container::before {
-            top: 20%;
-            left: 10%;
-            animation-delay: 0s;
-        }
-
-        .container::after {
-            top: 60%;
-            right: 10%;
-            animation-delay: 10s;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            25% { transform: translateY(-20px) rotate(90deg); }
-            50% { transform: translateY(0px) rotate(180deg); }
-            75% { transform: translateY(20px) rotate(270deg); }
-        }
-
-        /* Danger Zone */
-        .danger-zone {
-            margin-top: 60px;
-            padding: 40px;
-            background: rgba(255, 59, 48, 0.05);
-            border-radius: 24px;
-            border: 1px solid rgba(255, 59, 48, 0.1);
-        }
-
-        .danger-zone h2 {
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 24px;
-            color: #ff3b30;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .main-header {
-                padding: 120px 0 40px; 
-                margin-bottom: 40px;
-            }
-
-            .main-header h1 {
-                font-size: 36px;
-            }
-
-            .main-header p {
-                font-size: 19px;
-            }
-
-            .content-grid {
-                grid-template-columns: 1fr;
-                gap: 24px;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stat-number {
-                font-size: 48px;
-            }
-
-            .card-header,
-            .card-body {
-                padding: 24px;
-            }
-
-            .event-item:hover {
-                margin: 0 -16px;
-                padding-left: 16px;
-                padding-right: 16px;
-            }
-
-            .danger-zone {
-                padding: 24px;
-                margin-top: 40px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                padding: 0 16px;
-            }
-
-            .main-header h1 {
-                font-size: 32px;
-            }
-
-            .stat-card {
-                padding: 24px;
-            }
-
-            .stat-number {
-                font-size: 40px;
-            }
-
-            .danger-zone {
-                padding: 20px;
-                margin-top: 30px;
-            }
-        }
-    </style>
-
-    <div class="main-header fade-in">
-        <div class="container">
-            <h1><i class="fas fa-tachometer-alt"></i>Dashboard</h1>
-            <p>Overview of your school's event management</p>
+<div class="sticky-header">
+    <div class="container">
+        <h1><i class="fas fa-tachometer-alt"></i>Dashboard</h1>
+        <p>Overview of your school's event management</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="stats-grid">
+        {% if not is_student %}
+        <div class="stat-card fade-in">
+            <div class="stat-card-content">
+                <div>
+                    <div class="stat-number">{{ total_participants }}</div>
+                    <div class="stat-label">Students</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-graduation-cap"></i></div>
+            </div>
+        </div>
+        {% endif %}
+        <div class="stat-card fade-in">
+            <div class="stat-card-content">
+                <div>
+                    <div class="stat-number">{{ total_events }}</div>
+                    <div class="stat-label">Total Events</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-calendar"></i></div>
+            </div>
         </div>
     </div>
 
-    <div class="container">
-        <div class="stats-grid">
-            {% if not is_student %}
-            <div class="stat-card fade-in">
-                <div class="stat-card-content">
-                    <div>
-                        <div class="stat-number">{{ total_participants }}</div>
-                        <div class="stat-label">Students</div>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                </div>
+    <div class="content-grid">
+        <div class="apple-card fade-in">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-calendar-check"></i>Upcoming Events</h2>
             </div>
-            {% endif %}
-            <div class="stat-card fade-in">
-                <div class="stat-card-content">
-                    <div>
-                        <div class="stat-number">{{ total_events }}</div>
-                        <div class="stat-label">Total Events</div>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="fas fa-calendar"></i>
-                    </div>
+            <div class="card-body">
+                {% if upcoming_events %}
+                <ul style="list-style:none;padding:0;margin:0;">
+                    {% for event in upcoming_events %}
+                    <li style="padding:20px 0;border-bottom:1px solid rgba(0,0,0,0.04);cursor:pointer;transition:all 0.2s;" onclick="window.location.href='{{ url_for('event_detail', id=event.id) }}'">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+                            <span style="font-size:16px;font-weight:600;color:var(--dark);">{{ event.name }}</span>
+                            <span style="font-size:14px;color:var(--muted);font-weight:500;">{{ event.event_date }}</span>
+                        </div>
+                        <div style="font-size:14px;color:var(--muted);margin-bottom:3px;">
+                            <i class="fas fa-tag" style="width:14px;margin-right:6px;"></i>{{ event.type }} &nbsp;|&nbsp;
+                            <i class="fas fa-clock" style="width:14px;margin-right:6px;"></i>{{ event.start_time }} – {{ event.end_time }} &nbsp;|&nbsp;
+                            <i class="fas fa-map-marker-alt" style="width:14px;margin-right:6px;"></i>{{ event.venue }}
+                        </div>
+                        <div style="font-size:12px;color:var(--muted);">Host: {{ event.host_school }}</div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>No upcoming events found.</p>
                 </div>
+                {% endif %}
             </div>
         </div>
 
-        <div class="content-grid">
-            <div class="apple-card fade-in">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        <i class="fas fa-calendar-check"></i>Upcoming Events
-                    </h2>
-                </div>
-                <div class="card-body">
-                    {% if upcoming_events %}
-                        <ul class="event-list">
-                            {% for event in upcoming_events %}
-                                <li class="event-item" onclick="window.location.href='{{ url_for('event_detail', id=event.id) }}';" style="cursor: pointer;">
-                                    <div class="event-header">
-                                        <div class="event-name">{{ event.name }}</div>
-                                        <div class="event-date">{{ event.event_date }}</div>
-                                    </div>
-                                    <div class="event-details">
-                                        <i class="fas fa-tag"></i>{{ event.type }} |
-                                        <i class="fas fa-clock"></i>{{ event.start_time }} - {{ event.end_time }} |
-                                        <i class="fas fa-map-marker-alt"></i>{{ event.venue }}
-                                    </div>
-                                    <div class="event-host">Host: {{ event.host_school }}</div>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <div class="empty-state">
-                            <i class="fas fa-calendar-times"></i>
-                            <p>No upcoming events found.</p>
-                        </div>
+        <div class="apple-card fade-in">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-bolt"></i>Quick Actions</h2>
+            </div>
+            <div class="card-body">
+                <div style="display:flex;flex-direction:column;gap:14px;">
+                    {% if session.role in ['admin', 'super_admin'] %}
+                    <button class="action-btn" onclick="openImageScanner()" style="justify-content:center;">
+                        <i class="fas fa-camera"></i>Scan Event from Image
+                    </button>
+                    <a href="{{ url_for('add_event') }}" class="action-btn" style="justify-content:center;">
+                        <i class="fas fa-plus"></i>Add New Event
+                    </a>
+                    <a href="{{ url_for('add_participant') }}" class="action-btn success" style="justify-content:center;">
+                        <i class="fas fa-user-graduate"></i>Add Student
+                    </a>
+                    <a href="{{ url_for('add_duty') }}" class="action-btn warning" style="justify-content:center;">
+                        <i class="fas fa-tasks"></i>Assign Duty
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('reports') }}" class="action-btn secondary" style="justify-content:center;">
+                        <i class="fas fa-chart-bar"></i>View Reports
+                    </a>
+                    {% if session.role == 'super_admin' %}
+                    <button class="action-btn danger" onclick="confirmDeleteAllData()" style="justify-content:center;">
+                        <i class="fas fa-trash-alt"></i>Delete All Data
+                    </button>
                     {% endif %}
                 </div>
             </div>
-
-            <div class="apple-card fade-in">
-                <div class="card-header">
-                    <h2 class="card-title">
-                        <i class="fas fa-camera"></i>AI Event Scanner
-                    </h2>
-                </div>
-                <div class="card-body">
-                    <div class="action-buttons">
-                        {% if session.role in ['admin', 'super_admin'] %}
-                        <button class="action-btn" onclick="openImageScanner()">
-                            <i class="fas fa-camera"></i>Scan Event from Image
-                        </button>
-                        <a href="{{ url_for('add_event') }}" class="action-btn">
-                            <i class="fas fa-plus"></i>Add New Event
-                        </a>
-                        <a href="{{ url_for('add_participant') }}" class="action-btn success">
-                            <i class="fas fa-user-graduate"></i>Add Student
-                        </a>
-                        <a href="{{ url_for('add_duty') }}" class="action-btn warning">
-                            <i class="fas fa-tasks"></i>Assign Duty
-                        </a>
-                        {% endif %}
-                        <a href="{{ url_for('reports') }}" class="action-btn secondary">
-                            <i class="fas fa-chart-bar"></i>View Reports
-                        </a>
-                        {% if session.role == 'super_admin' %}
-                        <button class="action-btn" style="background: #ff3b30;" onclick="confirmDeleteAllData()">
-                            <i class="fas fa-trash-alt"></i>Delete All Data
-                        </button>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
+</div>
 
-
-    {% if session.role == 'super_admin' %}
-    <div class="container">
-        <div class="danger-zone">
-            <h2><i class="fas fa-exclamation-triangle"></i> Danger Zone</h2>
-            <div class="action-buttons">
-                <button class="action-btn" style="background: #ff3b30;" onclick="confirmDeleteAllData()">
-                    <i class="fas fa-trash-alt"></i>Delete All Data
-                </button>
+<div id="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;z-index:10000;">
+    <div style="background:white;border-radius:18px;box-shadow:0 20px 40px rgba(0,0,0,0.15);max-width:400px;width:90%;overflow:hidden;animation:fadeInUp 0.3s ease-out;">
+        <div style="padding:22px 22px 14px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;">
+            <h3 id="modal-title" style="font-size:18px;font-weight:600;color:var(--dark);margin:0;"></h3>
+            <button onclick="closeModal()" style="background:none;border:none;font-size:26px;cursor:pointer;color:var(--muted);line-height:1;">&times;</button>
+        </div>
+        <div style="padding:22px;text-align:center;">
+            <div id="modal-icon" style="font-size:44px;margin-bottom:14px;"></div>
+            <p id="modal-message" style="font-size:15px;line-height:1.6;color:var(--dark);margin:0;"></p>
+            <div id="modal-input-container" style="display:none;margin-top:14px;">
+                <input type="text" id="modal-input" style="width:100%;padding:11px 14px;border:1px solid #d2d2d7;border-radius:8px;font-size:15px;outline:none;" placeholder="">
             </div>
         </div>
-    </div>
-    {% endif %}
-
-    <!-- Modern Modal System -->
-    <div id="modal-overlay" class="modal-overlay" style="display: none;">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h3 id="modal-title" class="modal-title"></h3>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="modal-icon" class="modal-icon"></div>
-                <p id="modal-message" class="modal-message"></p>
-                <div id="modal-input-container" style="display: none; margin-top: 16px;">
-                    <input type="text" id="modal-input" class="modal-input" placeholder="">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="modal-cancel" class="modal-btn modal-btn-secondary" onclick="closeModal()">Cancel</button>
-                <button id="modal-confirm" class="modal-btn modal-btn-primary" onclick="handleModalConfirm()">Confirm</button>
-            </div>
+        <div style="padding:14px 22px 22px;display:flex;gap:10px;justify-content:flex-end;">
+            <button id="modal-cancel" onclick="closeModal()" style="padding:10px 20px;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;background:#f2f2f7;color:var(--dark);">Cancel</button>
+            <button id="modal-confirm" onclick="handleModalConfirm()" style="padding:10px 20px;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;background:var(--blue);color:white;">Confirm</button>
         </div>
     </div>
+</div>
 
-    <style>
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            animation: fadeIn 0.2s ease-out;
+{% block scripts %}
+<script>
+    let currentModalConfig = null;
+
+    function showModal(config) {
+        currentModalConfig = config;
+        const overlay = document.getElementById('modal-overlay');
+        document.getElementById('modal-title').textContent = config.title || '';
+        document.getElementById('modal-message').innerHTML = config.message || '';
+        const icons = { success: '✅', error: '❌', warning: '⚠️', danger: '⚠️', info: 'ℹ️' };
+        document.getElementById('modal-icon').textContent = icons[config.type] || 'ℹ️';
+        const inputContainer = document.getElementById('modal-input-container');
+        if (config.showInput) {
+            inputContainer.style.display = 'block';
+            document.getElementById('modal-input').value = '';
+            document.getElementById('modal-input').placeholder = config.inputPlaceholder || '';
+        } else {
+            inputContainer.style.display = 'none';
         }
+        document.getElementById('modal-confirm').textContent = config.confirmText || 'Confirm';
+        document.getElementById('modal-cancel').style.display = config.showCancel !== false ? 'block' : 'none';
+        overlay.style.display = 'flex';
+        document.addEventListener('keydown', handleEscapeKey);
+    }
 
-        .modal-container {
-            background: white;
-            border-radius: 18px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-            max-width: 400px;
-            width: 90%;
-            max-height: 90vh;
-            overflow: hidden;
-            animation: slideIn 0.3s ease-out;
+    function closeModal() {
+        document.getElementById('modal-overlay').style.display = 'none';
+        document.removeEventListener('keydown', handleEscapeKey);
+    }
+
+    function handleModalConfirm() {
+        if (currentModalConfig && currentModalConfig.onConfirm) {
+            const inputValue = currentModalConfig.showInput ? document.getElementById('modal-input').value : undefined;
+            currentModalConfig.onConfirm(inputValue);
+        } else {
+            closeModal();
         }
+    }
 
-        .modal-header {
-            padding: 24px 24px 16px;
-            border-bottom: 1px solid #f0f0f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    function handleEscapeKey(e) {
+        if (e.key === 'Escape') closeModal();
+    }
 
-        .modal-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #1d1d1f;
-            margin: 0;
-        }
+    document.getElementById('modal-overlay').addEventListener('click', function (e) {
+        if (e.target === this) closeModal();
+    });
 
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 28px;
-            cursor: pointer;
-            color: #86868b;
-            padding: 0;
-            line-height: 1;
-            transition: color 0.2s;
-        }
-
-        .modal-close:hover {
-            color: #1d1d1f;
-        }
-
-        .modal-body {
-            padding: 24px;
-            text-align: center;
-        }
-
-        .modal-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
-
-        .modal-message {
-            font-size: 16px;
-            line-height: 1.5;
-            color: #1d1d1f;
-            margin: 0;
-        }
-
-        .modal-input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid #d2d2d7;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.2s;
-        }
-
-        .modal-input:focus {
-            outline: none;
-            border-color: #007aff;
-        }
-
-        .modal-footer {
-            padding: 16px 24px 24px;
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-        }
-
-        .modal-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            min-width: 80px;
-        }
-
-        .modal-btn-primary {
-            background: #007aff;
-            color: white;
-        }
-
-        .modal-btn-primary:hover {
-            background: #0056cc;
-        }
-
-        .modal-btn-secondary {
-            background: #f2f2f7;
-            color: #1d1d1f;
-        }
-
-        .modal-btn-secondary:hover {
-            background: #e5e5ea;
-        }
-
-        /* Type-specific styles */
-        .modal-success .modal-icon { color: #34c759; }
-        .modal-error .modal-icon { color: #ff3b30; }
-        .modal-warning .modal-icon { color: #ff9500; }
-        .modal-info .modal-icon { color: #007aff; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes slideIn {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        @media (max-width: 480px) {
-            .modal-container {
-                width: 95%;
-                margin: 20px;
-            }
-            
-            .modal-footer {
-                flex-direction: column;
-            }
-            
-            .modal-btn {
-                width: 100%;
-            }
-        }
-    </style>
-
-    <script>
-        function toggleAnnouncementForm() {
-            const form = document.getElementById('announcement-form');
-            form.style.display = form.style.display === 'none' ? 'block' : 'none';
-        }
-
-        let currentModalConfig = null;
-
-        // Modern modal system
-        function showModal(config) {
-            currentModalConfig = config;
-            
-            const overlay = document.getElementById('modal-overlay');
-            const title = document.getElementById('modal-title');
-            const message = document.getElementById('modal-message');
-            const icon = document.getElementById('modal-icon');
-            const inputContainer = document.getElementById('modal-input-container');
-            const input = document.getElementById('modal-input');
-            const confirmBtn = document.getElementById('modal-confirm');
-            const cancelBtn = document.getElementById('modal-cancel');
-            
-            // Set content
-            title.textContent = config.title || '';
-            message.innerHTML = config.message || '';
-            
-            // Set icon based on type
-            const iconMap = {
-                'success': '✅',
-                'error': '❌',
-                'warning': '⚠️',
-                'danger': '⚠️',
-                'info': 'ℹ️'
-            };
-            icon.textContent = iconMap[config.type] || iconMap['info'];
-            
-            // Set type class
-            overlay.className = 'modal-overlay modal-' + (config.type || 'info');
-            
-            // Handle input
-            if (config.showInput) {
-                inputContainer.style.display = 'block';
-                input.value = '';
-                input.placeholder = config.inputPlaceholder || '';
-                input.focus();
-            } else {
-                inputContainer.style.display = 'none';
-            }
-            
-            // Handle buttons
-            confirmBtn.textContent = config.confirmText || 'Confirm';
-            cancelBtn.textContent = config.cancelText || 'Cancel';
-            cancelBtn.style.display = config.showCancel !== false ? 'block' : 'none';
-            
-            // Show modal
-            overlay.style.display = 'flex';
-            
-            // Handle escape key
-            document.addEventListener('keydown', handleEscapeKey);
-        }
-
-        function closeModal() {
-            const overlay = document.getElementById('modal-overlay');
-            overlay.style.display = 'none';
-            document.removeEventListener('keydown', handleEscapeKey);
-        }
-
-        function handleModalConfirm() {
-            if (currentModalConfig && currentModalConfig.onConfirm) {
-                const input = document.getElementById('modal-input');
-                const inputValue = currentModalConfig.showInput ? input.value : undefined;
-                currentModalConfig.onConfirm(inputValue);
-                // Don't close modal here - let the callback handle it if needed
-            } else {
+    function confirmDeleteAllData() {
+        showModal({
+            title: 'Permanent Data Deletion',
+            message: 'This will permanently delete ALL events, participants, duties, and non-admin users. This cannot be undone.',
+            type: 'warning',
+            confirmText: 'Continue',
+            onConfirm: () => {
                 closeModal();
-            }
-        }
-
-        function handleEscapeKey(event) {
-            if (event.key === 'Escape') {
-                closeModal();
-            }
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('modal-overlay').addEventListener('click', function(event) {
-            if (event.target === this) {
-                closeModal();
-            }
-        });
-
-        // Enhanced hover interactions
-        document.querySelectorAll('.stat-card').forEach(card => {
-            card.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-8px) scale(1.02)';
-            });
-            
-            card.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0) scale(1)';
-            });
-        });
-
-        // Smooth scrolling for any anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-
-        // Add ripple effect to buttons
-        document.querySelectorAll('.action-btn').forEach(button => {
-            button.addEventListener('click', function(e) {
-                let ripple = document.createElement('span');
-                let rect = this.getBoundingClientRect();
-                let size = Math.max(rect.width, rect.height);
-                let x = e.clientX - rect.left - size / 2;
-                let y = e.clientY - rect.top - size / 2;
-                
-                ripple.style.width = ripple.style.height = size + 'px';
-                ripple.style.left = x + 'px';
-                ripple.style.top = y + 'px';
-                ripple.style.position = 'absolute';
-                ripple.style.borderRadius = '50%';
-                ripple.style.background = 'rgba(255, 255, 255, 0.3)';
-                ripple.style.transform = 'scale(0)';
-                ripple.style.animation = 'ripple 0.6s linear';
-                ripple.style.pointerEvents = 'none';
-                
-                this.appendChild(ripple);
-                
                 setTimeout(() => {
-                    ripple.remove();
-                }, 600);
-            });
-        });
-
-        // Delete all data confirmation with modern modal
-        function confirmDeleteAllData() {
-            showModal({
-                title: '⚠️ Permanent Data Deletion',
-                message: 'WARNING: This will permanently delete ALL data including:<br><br>• All events<br>• All participants<br>• All duties and assignments<br>• All calendar data<br><br>This action CANNOT be undone. Are you absolutely sure?',
-                type: 'warning',
-                showCancel: true,
-                confirmText: 'Continue to Delete',
-                cancelText: 'Cancel',
-                onConfirm: () => {
-                    closeModal(); // Close first modal
-                    setTimeout(() => {
-                        showModal({
-                            title: 'Final Confirmation Required',
-                            message: 'Type "DELETE" exactly to confirm permanent deletion of all data:',
-                            type: 'danger',
-                            showInput: true,
-                            inputPlaceholder: 'Type DELETE to confirm',
-                            confirmText: 'Delete All Data',
-                            cancelText: 'Cancel',
-                            onConfirm: (inputValue) => {
-                                closeModal(); // Close second modal
-                                if (inputValue === 'DELETE') {
-                                    // Make API call to delete all data
-                                    fetch('/delete_all_data', {
-                                        method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                        }
-                                    })
-                                    .then(response => response.json())
+                    showModal({
+                        title: 'Final Confirmation',
+                        message: 'Type <strong>DELETE</strong> to confirm:',
+                        type: 'danger',
+                        showInput: true,
+                        inputPlaceholder: 'Type DELETE to confirm',
+                        confirmText: 'Delete All Data',
+                        onConfirm: (val) => {
+                            closeModal();
+                            if (val === 'DELETE') {
+                                fetch('/delete_all_data', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+                                    .then(r => r.json())
                                     .then(data => {
-                                        if (data.success) {
-                                            showModal({
-                                                title: 'Success',
-                                                message: 'All data has been successfully deleted.',
-                                                type: 'success',
-                                                onConfirm: () => {
-                                                    window.location.reload();
-                                                }
-                                            });
-                                        } else {
-                                            showModal({
-                                                title: 'Error',
-                                                message: 'Error deleting data: ' + data.error,
-                                                type: 'error'
-                                            });
-                                        }
-                                    })
-                                    .catch(error => {
-                                        console.error('Error:', error);
                                         showModal({
-                                            title: 'Error',
-                                            message: 'An error occurred while deleting data.',
-                                            type: 'error'
+                                            title: data.success ? 'Done' : 'Error',
+                                            message: data.success ? 'All data deleted.' : 'Error: ' + data.error,
+                                            type: data.success ? 'success' : 'error',
+                                            showCancel: false,
+                                            onConfirm: () => { closeModal(); if (data.success) window.location.reload(); }
                                         });
                                     });
-                                } else {
-                                    showModal({
-                                        title: 'Cancelled',
-                                        message: 'Deletion cancelled. Type "DELETE" exactly to confirm.',
-                                        type: 'info'
-                                    });
-                                }
+                            } else {
+                                showModal({ title: 'Cancelled', message: 'You must type DELETE exactly.', type: 'info', showCancel: false });
                             }
-                        });
-                    }, 300); // Small delay to allow modal transition
-                }
-            });
-        }
-
-        // CSS for ripple animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes ripple {
-                to {
-                    transform: scale(2);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-        // Image Scanner Functions
-        function openImageScanner() {
-            showModal({
-                title: '📸 AI Event Scanner',
-                message: 'Upload an image of an event poster, brochure, or flyer to automatically extract event details using AI.',
-                type: 'info',
-                showCancel: false,
-                confirmText: 'Choose Image',
-                onConfirm: () => {
-                    closeModal();
-                    triggerImageUpload();
-                }
-            });
-        }
-
-        function triggerImageUpload() {
-            // Create hidden file input
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.accept = 'image/*';
-            fileInput.style.display = 'none';
-            fileInput.onchange = handleImageUpload;
-            document.body.appendChild(fileInput);
-            fileInput.click();
-            document.body.removeChild(fileInput);
-        }
-
-        async function handleImageUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            // Show loading modal
-            showModal({
-                title: '🔍 Processing Image...',
-                message: 'AI is analyzing your image to extract event details. This may take a few moments.',
-                type: 'info',
-                showCancel: false,
-                confirmText: 'Please wait...'
-            });
-
-            const formData = new FormData();
-            formData.append('image', file);
-
-            try {
-                const response = await fetch('/api/scan-event', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    closeModal();
-                    showEventPreview(result.event);
-                } else {
-                    closeModal();
-                    showModal({
-                        title: '❌ Processing Error',
-                        message: result.error || 'Failed to process the image. Please try again with a clearer image.',
-                        type: 'error'
+                        }
                     });
-                }
-            } catch (error) {
-                closeModal();
-                showModal({
-                    title: '❌ Network Error',
-                    message: 'Failed to connect to the server. Please check your connection and try again.',
-                    type: 'error'
-                });
+                }, 250);
             }
-        }
+        });
+    }
 
-        function showEventPreview(eventData) {
-            const previewHtml = `
-                <div style="text-align: left; max-width: 500px;">
-                    <h3 style="color: #007aff; margin-bottom: 16px;">📅 Event Details Found</h3>
-                    <div style="margin-bottom: 12px;">
-                        <strong>Event Name:</strong> ${eventData.name || 'Not specified'}
-                    </div>
-                    <div style="margin-bottom: 12px;">
-                        <strong>Location:</strong> ${eventData.venue || 'Not specified'}
-                    </div>
-                    <div style="margin-bottom: 12px;">
-                        <strong>Date:</strong> ${eventData.event_date || 'Not specified'}
-                    </div>
-                    <div style="margin-bottom: 12px;">
-                        <strong>Time:</strong> ${eventData.start_time || 'Not specified'}
-                    </div>
-                    ${eventData.description ? `<div style="margin-bottom: 12px;"><strong>Additional Info:</strong> ${eventData.description}</div>` : ''}
-                    <div style="margin-bottom: 16px;">
-                        <strong>Confidence:</strong> <span style="color: ${eventData.confidence === 'high' ? '#34c759' : eventData.confidence === 'medium' ? '#ff9500' : '#ff3b30'}">${eventData.confidence || 'unknown'}</span>
-                    </div>
-                    <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
-                        <button onclick="addScannedEvent(${JSON.stringify(eventData).replace(/"/g, '&quot;')})" class="action-btn" style="padding: 12px 24px; font-size: 16px;">
-                            <i class="fas fa-plus"></i> Add to Events
-                        </button>
-                        <button onclick="closeModal()" class="action-btn secondary" style="padding: 12px 24px; font-size: 16px;">
-                            <i class="fas fa-times"></i> Cancel
-                        </button>
-                    </div>
-                </div>
-            `;
+    function openImageScanner() {
+        showModal({
+            title: 'AI Event Scanner',
+            message: 'Upload an image of an event poster or flyer to automatically extract event details.',
+            type: 'info',
+            showCancel: false,
+            confirmText: 'Choose Image',
+            onConfirm: () => { closeModal(); triggerImageUpload(); }
+        });
+    }
 
-            showModal({
-                title: '✅ Event Found',
-                message: previewHtml,
-                type: 'success',
-                showCancel: false,
-                confirmText: 'Continue'
-            });
-        }
+    function triggerImageUpload() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = handleImageUpload;
+        input.click();
+    }
 
-        function addScannedEvent(eventData) {
+    async function handleImageUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        showModal({ title: 'Processing...', message: 'AI is analyzing your image. Please wait.', type: 'info', showCancel: false, confirmText: 'Please wait...' });
+        const form = new FormData();
+        form.append('image', file);
+        try {
+            const res = await fetch('/api/scan-event', { method: 'POST', body: form });
+            const result = await res.json();
             closeModal();
-            
-            // Redirect to add_event page with pre-filled data
-            const params = new URLSearchParams();
-            if (eventData.name) params.append('name', eventData.name);
-            if (eventData.venue) params.append('venue', eventData.venue);
-            if (eventData.event_date) params.append('event_date', eventData.event_date);
-            if (eventData.start_time) params.append('start_time', eventData.start_time);
-            if (eventData.description) params.append('description', eventData.description);
-            params.append('host_school', 'Your School'); // Default value, user can change
-            
-            window.location.href = `/events/add?${params.toString()}`;
+            if (result.success) {
+                showEventPreview(result.event);
+            } else {
+                showModal({ title: 'Error', message: result.error || 'Failed to process image.', type: 'error', showCancel: false });
+            }
+        } catch {
+            closeModal();
+            showModal({ title: 'Network Error', message: 'Could not connect to server.', type: 'error', showCancel: false });
         }
+    }
 
-        // CSS for image scanner
-        const scannerStyle = document.createElement('style');
-        scannerStyle.textContent = `
-            .image-upload-zone {
-                border: 2px dashed #007aff;
-                border-radius: 12px;
-                padding: 40px;
-                text-align: center;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                background: rgba(0, 122, 255, 0.05);
-            }
-            .image-upload-zone:hover {
-                background: rgba(0, 122, 255, 0.1);
-                border-color: #0056cc;
-            }
-            .image-upload-zone.dragover {
-                background: rgba(0, 122, 255, 0.15);
-                border-color: #007aff;
-                transform: scale(1.02);
-            }
-            .upload-icon {
-                font-size: 48px;
-                color: #007aff;
-                margin-bottom: 16px;
-            }
-            .upload-text {
-                font-size: 18px;
-                color: #1d1d1f;
-                margin-bottom: 8px;
-            }
-            .upload-subtext {
-                font-size: 14px;
-                color: #86868b;
-            }
-        `;
-        document.head.appendChild(scannerStyle);
-    </script>
+    function showEventPreview(ev) {
+        const html = `<div style="text-align:left;"><strong>Name:</strong> ${ev.name || '—'}<br><strong>Venue:</strong> ${ev.venue || '—'}<br><strong>Date:</strong> ${ev.event_date || '—'}<br><strong>Time:</strong> ${ev.start_time || '—'}<br><strong>Confidence:</strong> ${ev.confidence || '—'}<br><br><button onclick="addScannedEvent(${JSON.stringify(ev).replace(/"/g,'&quot;')})" class="action-btn" style="width:100%;justify-content:center;"><i class='fas fa-plus'></i> Add to Events</button></div>`;
+        showModal({ title: 'Event Found', message: html, type: 'success', showCancel: false, confirmText: 'Close' });
+    }
+
+    function addScannedEvent(ev) {
+        closeModal();
+        const p = new URLSearchParams();
+        if (ev.name) p.append('name', ev.name);
+        if (ev.venue) p.append('venue', ev.venue);
+        if (ev.event_date) p.append('event_date', ev.event_date);
+        if (ev.start_time) p.append('start_time', ev.start_time);
+        if (ev.description) p.append('description', ev.description);
+        p.append('host_school', 'Your School');
+        window.location.href = `/events/add?${p.toString()}`;
+    }
+</script>
+{% endblock %}
 {% endblock %}

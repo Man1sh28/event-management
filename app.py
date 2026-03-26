@@ -1,123 +1,35 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, make_response
-import sqlite3
 import os
 from datetime import datetime, date, timedelta
 import calendar
 import json
+import csv
+from io import StringIO
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import tempfile
 import pandas as pd
 import io
+from supabase import create_client, Client
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-change-me')
 
-def init_db():
-    conn = sqlite3.connect('events.db')
-    cursor = conn.cursor()
-    
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS events (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            type TEXT NOT NULL,
-            event_date DATE NOT NULL,
-            start_time TIME NOT NULL,
-            end_time TIME NOT NULL,
-            venue TEXT NOT NULL,
-            description TEXT,
-            host_school TEXT NOT NULL,
-            participating_schools TEXT,
-            status TEXT DEFAULT 'upcoming',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS participants (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            unique_id TEXT UNIQUE NOT NULL,
-            name TEXT NOT NULL,
-            type TEXT NOT NULL CHECK (type IN ('student')),
-            class_dept TEXT NOT NULL,
-            school TEXT NOT NULL,
-            grade TEXT,
-            contact TEXT,
-            emergency_contact TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS duty_personnel (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            designation TEXT,
-            school TEXT,
-            contact TEXT,
-            email TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            role TEXT DEFAULT 'student',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS duties (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            event_id INTEGER NOT NULL,
-            duty_person_id INTEGER NOT NULL,
-            duty_type TEXT NOT NULL,
-            duty_date DATE NOT NULL,
-            start_time TIME NOT NULL,
-            end_time TIME NOT NULL,
-            location TEXT NOT NULL,
-            description TEXT,
-            notes TEXT,
-            assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
-            FOREIGN KEY (duty_person_id) REFERENCES duty_personnel (id) ON DELETE CASCADE
-        )
-    ''')
-    
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS participant_events (
-            participant_id INTEGER NOT NULL,
-            event_id INTEGER NOT NULL,
-            assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (participant_id, event_id),
-            FOREIGN KEY (participant_id) REFERENCES participants (id) ON DELETE CASCADE,
-            FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE
-        )
-    ''')
+# ─────────────────────────────────────────────
+# Supabase client  (replaces get_db_connection)
+# ─────────────────────────────────────────────
+SUPABASE_URL: str = os.environ['SUPABASE_URL']
+SUPABASE_KEY: str = os.environ['SUPABASE_KEY']   # service_role key
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS announcements (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            content TEXT NOT NULL,
-            event_id INTEGER NOT NULL,
-            created_by INTEGER NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
-            FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE CASCADE
-        )
-    ''')
-    
-    conn.commit()
-    conn.close()
 
-def get_db_connection():
-    conn = sqlite3.connect('events.db')
-    conn.row_factory = sqlite3.Row
-    return conn
-
+# ─────────────────────────────────────────────
+# Auth decorators  (unchanged from original)
+# ─────────────────────────────────────────────
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -141,30 +53,133 @@ def role_required(roles):
         return decorated_function
     return decorator
 
+
+# ─────────────────────────────────────────────
+# Auth routes
+# ─────────────────────────────────────────────
+@app.route('/')
+def index():
+    return render_template('login.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        result = supabase.table('users').select('*').eq('username', username).execute()
+        users = result.data
+
+        if users and check_password_hash(users[0]['password_hash'], password):
+            user = users[0]
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['role'] = user['role']
+            flash('Login successful!', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Invalid username or password', 'error')
+
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('Logged out successfully', 'success')
+    return redirect(url_for('login'))
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+
+        if password != confirm_password:
+            flash('Passwords do not match', 'error')
+            return render_template('register.html')
+
+        existing = supabase.table('users').select('id').eq('username', username).execute()
+        if existing.data:
+            flash('Username already exists', 'error')
+            return render_template('register.html')
+
+        password_hash = generate_password_hash(password)
+        count_result = supabase.table('users').select('id', count='exact').execute()
+        role = 'super_admin' if count_result.count == 0 else 'student'
+
+        supabase.table('users').insert({
+            'username': username,
+            'password_hash': password_hash,
+            'role': role
+        }).execute()
+
+        flash('Registration successful! Please login.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('register.html')
+
+
+# ─────────────────────────────────────────────
+# Dashboard
+# ─────────────────────────────────────────────
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    today = date.today().isoformat()
+
+    total_events      = supabase.table('events').select('id', count='exact').execute().count
+    total_participants = supabase.table('participants').select('id', count='exact').eq('type', 'student').execute().count
+    total_duty_personnel = supabase.table('duty_personnel').select('id', count='exact').execute().count
+    total_duties      = supabase.table('duties').select('id', count='exact').execute().count
+
+    upcoming_events = (
+        supabase.table('events')
+        .select('*')
+        .gte('event_date', today)
+        .order('event_date')
+        .limit(5)
+        .execute()
+        .data
+    )
+
+    is_student = session.get('role') == 'student'
+
+    return render_template('dashboard.html',
+                           total_events=total_events,
+                           total_participants=total_participants,
+                           total_duty_personnel=total_duty_personnel,
+                           total_duties=total_duties,
+                           upcoming_events=upcoming_events,
+                           is_student=is_student)
+
+
+# ─────────────────────────────────────────────
+# Calendar
+# ─────────────────────────────────────────────
 def get_calendar_data(year, month):
     cal = calendar.monthcalendar(year, month)
     month_name = calendar.month_name[month]
-    
-    conn = get_db_connection()
-    start_date = date(year, month, 1)
-    last_day = calendar.monthrange(year, month)[1]
-    end_date = date(year, month, last_day)
 
-    events = conn.execute('''
-        SELECT * FROM events 
-        WHERE event_date >= ? AND event_date <= ?
-        ORDER BY event_date, start_time
-    ''', (start_date, end_date)).fetchall()
+    start_date = date(year, month, 1).isoformat()
+    last_day   = calendar.monthrange(year, month)[1]
+    end_date   = date(year, month, last_day).isoformat()
 
-    conn.close()
-    
+    events = (
+        supabase.table('events')
+        .select('*')
+        .gte('event_date', start_date)
+        .lte('event_date', end_date)
+        .order('event_date')
+        .execute()
+        .data
+    )
+
     events_by_date = {}
     for event in events:
-        event_date = event['event_date']
-        if event_date not in events_by_date:
-            events_by_date[event_date] = []
-        events_by_date[event_date].append(event)
-    
+        d = event['event_date']
+        events_by_date.setdefault(d, []).append(event)
+
     from datetime import datetime as dt
     return {
         'calendar': cal,
@@ -176,420 +191,400 @@ def get_calendar_data(year, month):
         'prev_year': year if month > 1 else year - 1,
         'next_month': month + 1 if month < 12 else 1,
         'next_year': year if month < 12 else year + 1,
-        'datetime': dt
+        'datetime': dt,
     }
 
 @app.route('/calendar')
 @login_required
 def calendar_view():
-    year = int(request.args.get('year', datetime.now().year))
+    year  = int(request.args.get('year',  datetime.now().year))
     month = int(request.args.get('month', datetime.now().month))
-    
-    calendar_data = get_calendar_data(year, month)
-    return render_template('calendar.html', **calendar_data)
+    return render_template('calendar.html', **get_calendar_data(year, month))
 
 @app.route('/calendar/<int:year>/<int:month>/<int:day>')
 @login_required
 def day_events(year, month, day):
-    selected_date = date(year, month, day)
-    
-    conn = get_db_connection()
-    events_rows = conn.execute('''
-        SELECT * FROM events 
-        WHERE event_date = ?
-        ORDER BY start_time
-    ''', (selected_date,)).fetchall()
-    
+    selected_date = date(year, month, day).isoformat()
+
+    events_data = (
+        supabase.table('events')
+        .select('*')
+        .eq('event_date', selected_date)
+        .order('start_time')
+        .execute()
+        .data
+    )
+
     events = []
-    for row in events_rows:
-        e = dict(row)
-        participants_rows = conn.execute('''
-            SELECT p.name 
-            FROM participants p 
-            JOIN participant_events pe ON p.id = pe.participant_id 
-            WHERE pe.event_id = ?
-        ''', (e['id'],)).fetchall()
-        e['assigned_participants'] = [p['name'] for p in participants_rows]
+    for e in events_data:
+        rows = (
+            supabase.table('participant_events')
+            .select('participants(name)')
+            .eq('event_id', e['id'])
+            .execute()
+            .data
+        )
+        e['assigned_participants'] = [r['participants']['name'] for r in rows if r.get('participants')]
         events.append(e)
-        
-    conn.close()
-    
-    return render_template('day_events.html', 
-                         events=events, 
-                         selected_date=selected_date,
-                         year=year, month=month, day=day)
+
+    return render_template('day_events.html',
+                           events=events,
+                           selected_date=date(year, month, day),
+                           year=year, month=month, day=day)
 
 @app.route('/calendar/add_event', methods=['GET', 'POST'])
 @role_required(['admin', 'super_admin'])
 def add_calendar_event():
     if request.method == 'POST':
-        name = request.form['name']
-        event_type = request.form['type']
-        event_date = request.form['event_date']
-        start_time = request.form['start_time']
-        end_time = request.form['end_time']
-        venue = request.form['venue']
-        description = request.form['description']
-        host_school = request.form['host_school']
-        participating_schools = request.form['participating_schools']
-        
-        conn = get_db_connection()
-        conn.execute('''
-            INSERT INTO events (name, type, event_date, start_time, end_time, venue,
-                              description, host_school, participating_schools)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (name, event_type, event_date, start_time, end_time, venue,
-              description, host_school, participating_schools))
-        conn.commit()
-        conn.close()
-        
-        flash('Event added successfully!', 'success')
-        
-        year = int(request.args.get('year', datetime.now().year))
-        month = int(request.args.get('month', datetime.now().month))
-        day = int(request.args.get('day', 1))
+        supabase.table('events').insert({
+            'name':                 request.form['name'],
+            'type':                 request.form['type'],
+            'event_date':           request.form['event_date'],
+            'start_time':           request.form['start_time'],
+            'end_time':             request.form['end_time'],
+            'venue':                request.form['venue'],
+            'description':          request.form['description'],
+            'host_school':          request.form['host_school'],
+            'participating_schools': request.form['participating_schools'],
+        }).execute()
 
+        flash('Event added successfully!', 'success')
+        year  = int(request.args.get('year',  datetime.now().year))
+        month = int(request.args.get('month', datetime.now().month))
         return redirect(url_for('calendar_view', year=year, month=month))
-    
-    
-    year = request.args.get('year', datetime.now().year)
+
+    year  = request.args.get('year',  datetime.now().year)
     month = request.args.get('month', datetime.now().month)
-    day = request.args.get('day', datetime.now().day)
+    day   = request.args.get('day',   datetime.now().day)
     prefill_date = f"{year}-{str(month).zfill(2)}-{str(day).zfill(2)}"
-    
     return render_template('add_calendar_event.html', prefill_date=prefill_date)
 
-@app.route('/')
-def index():
-    return render_template('login.html')
 
-@app.route('/dashboard')
-@login_required
-def dashboard():
-    conn = get_db_connection()
-    
-    total_events = conn.execute('SELECT COUNT(*) as count FROM events').fetchone()['count']
-    total_participants = conn.execute('SELECT COUNT(*) as count FROM participants WHERE type = "student"').fetchone()['count']
-    total_duty_personnel = conn.execute('SELECT COUNT(*) as count FROM duty_personnel').fetchone()['count']
-    total_duties = conn.execute('SELECT COUNT(*) as count FROM duties').fetchone()['count']
-
-    upcoming_events = conn.execute('''
-        SELECT * FROM events 
-        WHERE event_date >= DATE('now') 
-        ORDER BY event_date ASC 
-        LIMIT 5
-    ''').fetchall()
-
-    conn.close()
-    
-    is_student = session.get('role') == 'student'
-    
-    return render_template('dashboard.html', 
-                         total_events=total_events,
-                         total_participants=total_participants,
-                         total_duty_personnel=total_duty_personnel,
-                         total_duties=total_duties,
-                         upcoming_events=upcoming_events,
-                         is_student=is_student)
-
+# ─────────────────────────────────────────────
+# Events CRUD
+# ─────────────────────────────────────────────
 @app.route('/events')
 @login_required
 def events():
-    conn = get_db_connection()
     filter_type = request.args.get('filter', 'all')
-    search = request.args.get('search', '')
-    is_student = session.get('role') == 'student'
-    
+    search      = request.args.get('search', '')
+    is_student  = session.get('role') == 'student'
+    today       = date.today().isoformat()
+
+    query = supabase.table('events').select('*')
+
     if is_student:
-        my_participant = conn.execute('''
-            SELECT p.id FROM participants p
-            JOIN users u ON u.username = p.unique_id
-            WHERE u.id = ?
-        ''', (session['user_id'],)).fetchone()
-        
-        if my_participant:
-            query = '''
-                SELECT e.* FROM events e
-                JOIN participant_events pe ON e.id = pe.event_id
-                WHERE pe.participant_id = ?
-            '''
-            params = [my_participant['id']]
-        else:
-            query = 'SELECT * FROM events WHERE 1=0'
-            params = []
-    else:
-        query = 'SELECT * FROM events WHERE 1=1'
-        params = []
-    
+        # Find participant record linked to this user
+        user_result = supabase.table('users').select('username').eq('id', session['user_id']).execute()
+        if not user_result.data:
+            return render_template('events.html', events=[], filter_type=filter_type,
+                                   search=search, is_student=is_student)
+
+        participant_result = (
+            supabase.table('participants')
+            .select('id')
+            .eq('unique_id', f"user_{session['user_id']}")
+            .execute()
+        )
+        if not participant_result.data:
+            return render_template('events.html', events=[], filter_type=filter_type,
+                                   search=search, is_student=is_student)
+
+        participant_id = participant_result.data[0]['id']
+        pe_rows = (
+            supabase.table('participant_events')
+            .select('event_id')
+            .eq('participant_id', participant_id)
+            .execute()
+            .data
+        )
+        event_ids = [r['event_id'] for r in pe_rows]
+        if not event_ids:
+            return render_template('events.html', events=[], filter_type=filter_type,
+                                   search=search, is_student=is_student)
+        query = query.in_('id', event_ids)
+
     if filter_type == 'upcoming':
-        query += ' AND event_date >= DATE("now")'
+        query = query.gte('event_date', today)
     elif filter_type == 'completed':
-        query += ' AND event_date < DATE("now")'
-    
+        query = query.lt('event_date', today)
+
+    events_data = query.order('event_date').execute().data
+
+    # Apply search filter in Python (Supabase PostgREST supports ilike but not OR easily cross-column)
     if search:
-        query += ' AND (name LIKE ? OR type LIKE ? OR venue LIKE ?)'
-        params.extend([f'%{search}%', f'%{search}%', f'%{search}%'])
-    
-    query += ' ORDER BY event_date ASC'
-    
-    events_rows = conn.execute(query, params).fetchall()
-    
+        s = search.lower()
+        events_data = [e for e in events_data if
+                       s in e.get('name', '').lower() or
+                       s in e.get('type', '').lower() or
+                       s in e.get('venue', '').lower()]
+
     events = []
-    for row in events_rows:
-        e = dict(row)
-        participants_rows = conn.execute('''
-            SELECT p.name 
-            FROM participants p 
-            JOIN participant_events pe ON p.id = pe.participant_id 
-            WHERE pe.event_id = ?
-        ''', (e['id'],)).fetchall()
-        e['assigned_participants'] = [p['name'] for p in participants_rows]
+    for e in events_data:
+        rows = (
+            supabase.table('participant_events')
+            .select('participants(name)')
+            .eq('event_id', e['id'])
+            .execute()
+            .data
+        )
+        e['assigned_participants'] = [r['participants']['name'] for r in rows if r.get('participants')]
         e['is_enrolled'] = True
-        
         events.append(e)
-        
-    conn.close()
-    
-    return render_template('events.html', events=events, filter_type=filter_type, search=search, is_student=is_student)
 
-@app.route('/events/<int:id>')
-@login_required
-def event_detail(id):
-    conn = get_db_connection()
-    event_row = conn.execute('SELECT * FROM events WHERE id = ?', (id,)).fetchone()
-    
-    if not event_row:
-        conn.close()
-        flash('Event not found', 'error')
-        return redirect(url_for('events'))
-    
-    is_student = session.get('role') == 'student'
-    
-    if is_student:
-        participant = conn.execute('''
-            SELECT p.id FROM participants p 
-            JOIN users u ON u.username = p.unique_id 
-            WHERE u.id = ? AND p.id IN (SELECT participant_id FROM participant_events WHERE event_id = ?)
-        ''', (session['user_id'], id)).fetchone()
-        
-        if not participant:
-            conn.close()
-            flash('You are not enrolled in this event', 'error')
-            return redirect(url_for('events'))
-    
-    event = dict(event_row)
-    
-    participants_rows = conn.execute('''
-        SELECT p.* 
-        FROM participants p 
-        JOIN participant_events pe ON p.id = pe.participant_id 
-        WHERE pe.event_id = ?
-    ''', (id,)).fetchall()
-    
-    duties_rows = conn.execute('''
-        SELECT d.*, dp.name as person_name, dp.designation
-        FROM duties d
-        JOIN duty_personnel dp ON d.duty_person_id = dp.id
-        WHERE d.event_id = ?
-    ''', (id,)).fetchall()
-    
-    announcements = conn.execute('''
-        SELECT a.*, u.username as author 
-        FROM announcements a 
-        JOIN users u ON a.created_by = u.id 
-        WHERE a.event_id = ?
-        ORDER BY a.created_at ASC
-    ''', (id,)).fetchall()
-    
-    conn.close()
-    
-    return render_template('event_detail.html', 
-                         event=event, 
-                         participants=participants_rows,
-                         duties=duties_rows,
-                         announcements=announcements,
-                         is_student=is_student)
-
-@app.route('/announcements/add', methods=['POST'])
-@role_required(['admin', 'super_admin'])
-def add_announcement():
-    title = request.form.get('title', 'Event Update')
-    content = request.form['content']
-    event_id = request.form['event_id']
-    user_id = session['user_id']
-    
-    conn = get_db_connection()
-    conn.execute('INSERT INTO announcements (title, content, event_id, created_by) VALUES (?, ?, ?, ?)',
-                (title, content, event_id, user_id))
-    conn.commit()
-    conn.close()
-    
-    flash('Message sent successfully!', 'success')
-    return redirect(url_for('event_detail', id=event_id))
-
-@app.route('/announcements/<int:id>/delete', methods=['POST'])
-@role_required(['admin', 'super_admin'])
-def delete_announcement(id):
-    conn = get_db_connection()
-    conn.execute('DELETE FROM announcements WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
-    
-    flash('Announcement deleted successfully!', 'success')
-    return redirect(request.referrer or url_for('dashboard'))
+    return render_template('events.html', events=events, filter_type=filter_type,
+                           search=search, is_student=is_student)
 
 @app.route('/events/add', methods=['GET', 'POST'])
 @role_required(['admin', 'super_admin'])
 def add_event():
     if request.method == 'POST':
-        name = request.form['name']
-        event_type = request.form['type']
-        event_date = request.form['event_date']
-        start_time = request.form['start_time']
-        end_time = request.form['end_time']
-        venue = request.form['venue']
-        description = request.form['description']
-        host_school = request.form['host_school']
-        participating_schools = request.form['participating_schools']
-        
-        conn = get_db_connection()
-        conn.execute('''
-            INSERT INTO events (name, type, event_date, start_time, end_time, venue, 
-                              description, host_school, participating_schools)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (name, event_type, event_date, start_time, end_time, venue, 
-              description, host_school, participating_schools))
-        conn.commit()
-        conn.close()
-        
+        supabase.table('events').insert({
+            'name':                  request.form['name'],
+            'type':                  request.form['type'],
+            'event_date':            request.form['event_date'],
+            'start_time':            request.form['start_time'],
+            'end_time':              request.form['end_time'],
+            'venue':                 request.form['venue'],
+            'description':           request.form['description'],
+            'host_school':           request.form['host_school'],
+            'participating_schools': request.form['participating_schools'],
+        }).execute()
         flash('Event added successfully!', 'success')
         return redirect(url_for('events'))
-    
+
     return render_template('add_event.html')
+
+@app.route('/events/<int:id>')
+@login_required
+def event_detail(id):
+    result = supabase.table('events').select('*').eq('id', id).execute()
+    if not result.data:
+        flash('Event not found', 'error')
+        return redirect(url_for('events'))
+
+    event = result.data[0]
+    is_student = session.get('role') == 'student'
+
+    if is_student:
+        pe = (
+            supabase.table('participant_events')
+            .select('participant_id')
+            .eq('event_id', id)
+            .execute()
+            .data
+        )
+        enrolled_ids = [r['participant_id'] for r in pe]
+        my_p = (
+            supabase.table('participants')
+            .select('id')
+            .eq('unique_id', f"user_{session['user_id']}")
+            .execute()
+            .data
+        )
+        if not my_p or my_p[0]['id'] not in enrolled_ids:
+            flash('You are not enrolled in this event', 'error')
+            return redirect(url_for('events'))
+
+    participants_rows = (
+        supabase.table('participant_events')
+        .select('participants(*)')
+        .eq('event_id', id)
+        .execute()
+        .data
+    )
+    participants = [r['participants'] for r in participants_rows if r.get('participants')]
+
+    duties_rows = (
+        supabase.table('duties')
+        .select('*, duty_personnel(name, designation)')
+        .eq('event_id', id)
+        .execute()
+        .data
+    )
+    duties = []
+    for d in duties_rows:
+        flat = {**d}
+        if d.get('duty_personnel'):
+            flat['person_name']  = d['duty_personnel']['name']
+            flat['designation']  = d['duty_personnel']['designation']
+        duties.append(flat)
+
+    announcements_rows = (
+        supabase.table('announcements')
+        .select('*, users(username)')
+        .eq('event_id', id)
+        .order('created_at')
+        .execute()
+        .data
+    )
+    announcements = []
+    for a in announcements_rows:
+        flat = {**a}
+        flat['author'] = a['users']['username'] if a.get('users') else 'Unknown'
+        announcements.append(flat)
+
+    return render_template('event_detail.html',
+                           event=event,
+                           participants=participants,
+                           duties=duties,
+                           announcements=announcements,
+                           is_student=is_student)
 
 @app.route('/events/<int:id>/edit', methods=['GET', 'POST'])
 @role_required(['admin', 'super_admin'])
 def edit_event(id):
-    conn = get_db_connection()
-    event = conn.execute('SELECT * FROM events WHERE id = ?', (id,)).fetchone()
-    
     if request.method == 'POST':
-        name = request.form['name']
-        event_type = request.form['type']
-        event_date = request.form['event_date']
-        start_time = request.form['start_time']
-        end_time = request.form['end_time']
-        venue = request.form['venue']
-        description = request.form['description']
-        host_school = request.form['host_school']
-        participating_schools = request.form['participating_schools']
-        
-        conn.execute('''
-            UPDATE events SET name = ?, type = ?, event_date = ?, start_time = ?, 
-                           end_time = ?, venue = ?, description = ?, host_school = ?, 
-                           participating_schools = ? WHERE id = ?
-        ''', (name, event_type, event_date, start_time, end_time, venue, 
-              description, host_school, participating_schools, id))
-        conn.commit()
-        conn.close()
-        
+        supabase.table('events').update({
+            'name':                  request.form['name'],
+            'type':                  request.form['type'],
+            'event_date':            request.form['event_date'],
+            'start_time':            request.form['start_time'],
+            'end_time':              request.form['end_time'],
+            'venue':                 request.form['venue'],
+            'description':           request.form['description'],
+            'host_school':           request.form['host_school'],
+            'participating_schools': request.form['participating_schools'],
+        }).eq('id', id).execute()
         flash('Event updated successfully!', 'success')
         return redirect(url_for('events'))
-    
-    conn.close()
+
+    event = supabase.table('events').select('*').eq('id', id).execute().data[0]
     return render_template('edit_event.html', event=event)
 
 @app.route('/events/<int:id>/delete', methods=['POST'])
 @role_required(['admin', 'super_admin'])
 def delete_event(id):
-    conn = get_db_connection()
-    conn.execute('DELETE FROM events WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
-    
+    supabase.table('events').delete().eq('id', id).execute()
     flash('Event deleted successfully!', 'success')
     return redirect(url_for('events'))
 
+
+# ─────────────────────────────────────────────
+# Participants CRUD
+# ─────────────────────────────────────────────
 @app.route('/participants')
 @login_required
 def participants():
-    conn = get_db_connection()
     search = request.args.get('search', '')
-    
-    query = 'SELECT * FROM participants WHERE type = "student"'
-    params = []
-    
+
+    query = supabase.table('participants').select('*').eq('type', 'student')
+    participants_data = query.execute().data
+
     if search:
-        query += ' AND (name LIKE ? OR class_dept LIKE ?)'
-        params.extend([f'%{search}%', f'%{search}%'])
-    
-    participants_rows = conn.execute(query, params).fetchall()
-    
-    # Fetch events for each participant
+        s = search.lower()
+        participants_data = [p for p in participants_data if
+                             s in p.get('name', '').lower() or
+                             s in p.get('class_dept', '').lower()]
+
     participants = []
-    for row in participants_rows:
-        p = dict(row)
-        events_rows = conn.execute('''
-            SELECT e.name 
-            FROM events e 
-            JOIN participant_events pe ON e.id = pe.event_id 
-            WHERE pe.participant_id = ?
-        ''', (p['id'],)).fetchall()
-        p['assigned_events_list'] = [e['name'] for e in events_rows]
+    for p in participants_data:
+        rows = (
+            supabase.table('participant_events')
+            .select('events(name)')
+            .eq('participant_id', p['id'])
+            .execute()
+            .data
+        )
+        p['assigned_events_list'] = [r['events']['name'] for r in rows if r.get('events')]
         p['events_count'] = len(p['assigned_events_list'])
         participants.append(p)
-        
-    conn.close()
-    
+
     return render_template('participants.html', participants=participants, search=search)
 
 @app.route('/participants/add', methods=['GET', 'POST'])
 @role_required(['admin', 'super_admin'])
 def add_participant():
     if request.method == 'POST':
-        unique_id = request.form['unique_id']
-        name = request.form['name']
-        participant_type = request.form['type']
-        school = request.form['school']
-        grade = request.form.get('grade', '')
-        contact = request.form['contact']
-        emergency_contact = request.form['emergency_contact']
-        selected_events = request.form.getlist('events')
+        unique_id          = request.form['unique_id']
+        name               = request.form['name']
+        participant_type   = request.form['type']
+        school             = request.form['school']
+        grade              = request.form.get('grade', '')
+        contact            = request.form['contact']
+        emergency_contact  = request.form['emergency_contact']
+        selected_events    = request.form.getlist('events')
+        class_dept         = f"Grade {grade}" if grade else school
 
-        if grade:
-            class_dept = f"Grade {grade}"
-        else:
-            class_dept = school
-        
-        conn = get_db_connection()
-        existing = conn.execute('SELECT id FROM participants WHERE unique_id = ?', (unique_id,)).fetchone()
-        if existing:
-            events = conn.execute('SELECT id, name, event_date FROM events ORDER BY event_date').fetchall()
-            conn.close()
+        existing = supabase.table('participants').select('id').eq('unique_id', unique_id).execute()
+        if existing.data:
+            events_list = supabase.table('events').select('id, name, event_date').order('event_date').execute().data
             flash('A participant with this Unique ID already exists!', 'error')
-            return render_template('add_participant.html', events=events)
+            return render_template('add_participant.html', events=events_list)
 
-        cursor = conn.execute('''
-            INSERT INTO participants (unique_id, name, type, class_dept, school, contact, emergency_contact)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (unique_id, name, participant_type, class_dept, school, contact, emergency_contact))
-        participant_id = cursor.lastrowid
-        
+        result = supabase.table('participants').insert({
+            'unique_id':         unique_id,
+            'name':              name,
+            'type':              participant_type,
+            'class_dept':        class_dept,
+            'school':            school,
+            'contact':           contact,
+            'emergency_contact': emergency_contact,
+        }).execute()
+        participant_id = result.data[0]['id']
+
         for event_id in selected_events:
-            conn.execute('INSERT INTO participant_events (participant_id, event_id) VALUES (?, ?)',
-                        (participant_id, event_id))
-            
-        conn.commit()
-        conn.close()
-        
+            supabase.table('participant_events').insert({
+                'participant_id': participant_id,
+                'event_id':       int(event_id),
+            }).execute()
+
         flash('Participant added and assigned to events successfully!', 'success')
         return redirect(url_for('participants'))
-    
-    conn = get_db_connection()
-    events = conn.execute('SELECT id, name, event_date FROM events ORDER BY event_date').fetchall()
-    conn.close()
-    return render_template('add_participant.html', events=events)
 
+    events_list = supabase.table('events').select('id, name, event_date').order('event_date').execute().data
+    return render_template('add_participant.html', events=events_list)
+
+@app.route('/participants/<int:id>/edit', methods=['GET', 'POST'])
+@role_required(['admin', 'super_admin'])
+def edit_participant(id):
+    if request.method == 'POST':
+        unique_id         = request.form['unique_id']
+        name              = request.form['name']
+        participant_type  = request.form['type']
+        school            = request.form['school']
+        grade             = request.form.get('grade', '')
+        contact           = request.form['contact']
+        emergency_contact = request.form['emergency_contact']
+        selected_events   = request.form.getlist('events')
+        class_dept        = f"Grade {grade}" if grade else school
+
+        supabase.table('participants').update({
+            'unique_id':         unique_id,
+            'name':              name,
+            'type':              participant_type,
+            'class_dept':        class_dept,
+            'school':            school,
+            'contact':           contact,
+            'emergency_contact': emergency_contact,
+        }).eq('id', id).execute()
+
+        # Re-assign events
+        supabase.table('participant_events').delete().eq('participant_id', id).execute()
+        for event_id in selected_events:
+            supabase.table('participant_events').insert({
+                'participant_id': id,
+                'event_id':       int(event_id),
+            }).execute()
+
+        flash('Participant updated successfully!', 'success')
+        return redirect(url_for('participants'))
+
+    participant   = supabase.table('participants').select('*').eq('id', id).execute().data[0]
+    events_list   = supabase.table('events').select('id, name, event_date').order('event_date').execute().data
+    assigned_rows = supabase.table('participant_events').select('event_id').eq('participant_id', id).execute().data
+    assigned_events = [r['event_id'] for r in assigned_rows]
+    return render_template('edit_participant.html', participant=participant,
+                           events=events_list, assigned_events=assigned_events)
+
+@app.route('/participants/<int:id>/delete', methods=['POST'])
+@role_required(['admin', 'super_admin'])
+def delete_participant(id):
+    supabase.table('participants').delete().eq('id', id).execute()
+    flash('Participant deleted successfully!', 'success')
+    return redirect(url_for('participants'))
+
+# Bulk upload
 @app.route('/participants/bulk-upload')
 @role_required(['admin', 'super_admin'])
 def bulk_upload_participants():
@@ -599,13 +594,13 @@ def bulk_upload_participants():
 @role_required(['admin', 'super_admin'])
 def download_bulk_upload_template():
     df = pd.DataFrame({
-        'unique_id': ['STU001', 'STU002', 'STU003'],
-        'name': ['John Smith', 'Jane Doe', 'Bob Wilson'],
-        'school': ['School A', 'School B', 'School C'],
-        'grade': ['6', '7', '8'],
-        'contact': ['email@example.com', 'phone@example.com', 'email@phone.example.com'],
-        'emergency_contact': ['Emergency Name 1 - Phone 1', 'Emergency Name 2 - Phone 2', 'Emergency Name 3 - Phone 3'],
-        'event_ids': ['1,2', '2,3', '1,3']
+        'unique_id':         ['STU001', 'STU002', 'STU003'],
+        'name':              ['John Smith', 'Jane Doe', 'Bob Wilson'],
+        'school':            ['School A', 'School B', 'School C'],
+        'grade':             ['6', '7', '8'],
+        'contact':           ['email@example.com', 'phone@example.com', 'other@example.com'],
+        'emergency_contact': ['EC Name 1 - Phone 1', 'EC Name 2 - Phone 2', 'EC Name 3 - Phone 3'],
+        'event_ids':         ['1,2', '2,3', '1,3'],
     })
     output = io.StringIO()
     df.to_csv(output, index=False)
@@ -621,221 +616,217 @@ def process_bulk_upload():
     if 'file' not in request.files:
         flash('No file uploaded', 'error')
         return redirect(url_for('bulk_upload_participants'))
-    
+
     file = request.files['file']
     if file.filename == '':
         flash('No file selected', 'error')
         return redirect(url_for('bulk_upload_participants'))
-    
-    if file and (file.filename.endswith('.csv') or file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
-        conn = get_db_connection()
-        added_count = 0
-        skipped_count = 0
-        error_messages = []
-        
-        try:
-            if file.filename.endswith('.csv'):
-                df = pd.read_csv(file)
-            else:
-                df = pd.read_excel(file)
-            
-            df.columns = df.columns.str.strip().str.lower()
-            
-            required_columns = ['unique_id', 'name', 'school']
-            missing_columns = [col for col in required_columns if col not in df.columns]
-            if missing_columns:
-                flash(f'Missing required columns: {", ".join(missing_columns)}', 'error')
-                conn.close()
-                return redirect(url_for('bulk_upload_participants'))
-            
-            for index, row in df.iterrows():
-                try:
-                    unique_id = str(row.get('unique_id', '')).strip()
-                    name = str(row.get('name', '')).strip()
-                    school = str(row.get('school', '')).strip()
-                    grade = str(row.get('grade', '')).strip()
-                    contact = str(row.get('contact', '')).strip()
-                    emergency_contact = str(row.get('emergency_contact', '')).strip()
-                    event_ids_str = str(row.get('event_ids', '')).strip()
-                    
-                    if not unique_id or not name or not school:
-                        skipped_count += 1
-                        error_messages.append(f'Row {index + 2}: Missing required fields')
-                        continue
-                    
-                    existing = conn.execute('SELECT id FROM participants WHERE unique_id = ?', (unique_id,)).fetchone()
-                    if existing:
-                        skipped_count += 1
-                        error_messages.append(f'Row {index + 2}: Duplicate unique_id {unique_id}')
-                        continue
-                    
-                    if grade:
-                        class_dept = f"Grade {grade}"
-                    else:
-                        class_dept = school
-                    
-                    cursor = conn.execute('''
-                        INSERT INTO participants (unique_id, name, type, class_dept, school, contact, emergency_contact)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ''', (unique_id, name, 'student', class_dept, school, contact, emergency_contact))
-                    participant_id = cursor.lastrowid
-                    
-                    if event_ids_str:
-                        event_ids = [eid.strip() for eid in event_ids_str.split(',') if eid.strip().isdigit()]
-                        for event_id in event_ids:
-                            conn.execute('INSERT INTO participant_events (participant_id, event_id) VALUES (?, ?)',
-                                        (participant_id, int(event_id)))
-                    
-                    added_count += 1
-                    
-                except Exception as e:
-                    skipped_count += 1
-                    error_messages.append(f'Row {index + 2}: {str(e)}')
-            
-            conn.commit()
-            conn.close()
-            
-            message = f'Successfully added {added_count} participants.'
-            if skipped_count > 0:
-                message += f' Skipped {skipped_count} rows.'
-            flash(message, 'success' if added_count > 0 else 'warning')
-            
-        except Exception as e:
-            flash(f'Error processing file: {str(e)}', 'error')
-    else:
+
+    if not (file.filename.endswith('.csv') or file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
         flash('Invalid file format. Please upload a CSV or Excel file.', 'error')
-    
+        return redirect(url_for('bulk_upload_participants'))
+
+    added_count   = 0
+    skipped_count = 0
+    error_messages = []
+
+    try:
+        df = pd.read_csv(file) if file.filename.endswith('.csv') else pd.read_excel(file)
+        df.columns = df.columns.str.strip().str.lower()
+
+        required_columns = ['unique_id', 'name', 'school']
+        missing = [c for c in required_columns if c not in df.columns]
+        if missing:
+            flash(f'Missing required columns: {", ".join(missing)}', 'error')
+            return redirect(url_for('bulk_upload_participants'))
+
+        for index, row in df.iterrows():
+            try:
+                unique_id         = str(row.get('unique_id', '')).strip()
+                name              = str(row.get('name', '')).strip()
+                school            = str(row.get('school', '')).strip()
+                grade             = str(row.get('grade', '')).strip()
+                contact           = str(row.get('contact', '')).strip()
+                emergency_contact = str(row.get('emergency_contact', '')).strip()
+                event_ids_str     = str(row.get('event_ids', '')).strip()
+
+                if not unique_id or not name or not school:
+                    skipped_count += 1
+                    error_messages.append(f'Row {index + 2}: Missing required fields')
+                    continue
+
+                existing = supabase.table('participants').select('id').eq('unique_id', unique_id).execute()
+                if existing.data:
+                    skipped_count += 1
+                    error_messages.append(f'Row {index + 2}: Duplicate unique_id {unique_id}')
+                    continue
+
+                class_dept = f"Grade {grade}" if grade else school
+
+                result = supabase.table('participants').insert({
+                    'unique_id':         unique_id,
+                    'name':              name,
+                    'type':              'student',
+                    'class_dept':        class_dept,
+                    'school':            school,
+                    'contact':           contact,
+                    'emergency_contact': emergency_contact,
+                }).execute()
+                participant_id = result.data[0]['id']
+
+                if event_ids_str:
+                    event_ids = [eid.strip() for eid in event_ids_str.split(',') if eid.strip().isdigit()]
+                    for eid in event_ids:
+                        supabase.table('participant_events').insert({
+                            'participant_id': participant_id,
+                            'event_id':       int(eid),
+                        }).execute()
+
+                added_count += 1
+
+            except Exception as e:
+                skipped_count += 1
+                error_messages.append(f'Row {index + 2}: {str(e)}')
+
+        message = f'Successfully added {added_count} participants.'
+        if skipped_count:
+            message += f' Skipped {skipped_count} rows.'
+        flash(message, 'success' if added_count > 0 else 'warning')
+
+    except Exception as e:
+        flash(f'Error processing file: {str(e)}', 'error')
+
     return redirect(url_for('bulk_upload_participants'))
 
-@app.route('/participants/<int:id>/edit', methods=['GET', 'POST'])
+# Assign participant from user account
+@app.route('/events/<int:id>/assign_participant', methods=['POST'])
 @role_required(['admin', 'super_admin'])
-def edit_participant(id):
-    conn = get_db_connection()
-    participant = conn.execute('SELECT * FROM participants WHERE id = ?', (id,)).fetchone()
-    
-    if request.method == 'POST':
-        unique_id = request.form['unique_id']
-        name = request.form['name']
-        participant_type = request.form['type']
-        school = request.form['school']
-        grade = request.form.get('grade', '')
-        contact = request.form['contact']
-        emergency_contact = request.form['emergency_contact']
-        selected_events = request.form.getlist('events')
+def assign_participant(id):
+    user_id = request.form.get('user_id', type=int)
+    if not user_id:
+        flash('No student selected', 'error')
+        return redirect(url_for('event_detail', id=id))
 
-        if grade:
-            class_dept = f"Grade {grade}"
-        else:
-            class_dept = school
-        
-        conn.execute('''
-            UPDATE participants SET unique_id = ?, name = ?, type = ?, class_dept = ?, school = ?, 
-                           contact = ?, emergency_contact = ? WHERE id = ?
-        ''', (unique_id, name, participant_type, class_dept, school, contact, emergency_contact, id))
-        
-        # Update event assignments
-        conn.execute('DELETE FROM participant_events WHERE participant_id = ?', (id,))
-        for event_id in selected_events:
-            conn.execute('INSERT INTO participant_events (participant_id, event_id) VALUES (?, ?)',
-                        (id, event_id))
-            
-        conn.commit()
-        conn.close()
-        
-        flash('Participant updated successfully!', 'success')
-        return redirect(url_for('participants'))
-    
-    events = conn.execute('SELECT id, name, event_date FROM events ORDER BY event_date').fetchall()
-    assigned_events = [row['event_id'] for row in conn.execute('SELECT event_id FROM participant_events WHERE participant_id = ?', (id,)).fetchall()]
-    conn.close()
-    return render_template('edit_participant.html', participant=participant, events=events, assigned_events=assigned_events)
+    event_result = supabase.table('events').select('id').eq('id', id).execute()
+    if not event_result.data:
+        flash('Event not found', 'error')
+        return redirect(url_for('events'))
 
-@app.route('/participants/<int:id>/delete', methods=['POST'])
-@role_required(['admin', 'super_admin'])
-def delete_participant(id):
-    conn = get_db_connection()
-    conn.execute('DELETE FROM participants WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
-    
-    flash('Participant deleted successfully!', 'success')
-    return redirect(url_for('participants'))
+    user_result = supabase.table('users').select('*').eq('id', user_id).eq('role', 'student').execute()
+    if not user_result.data:
+        flash('Student user not found', 'error')
+        return redirect(url_for('event_detail', id=id))
 
+    user      = user_result.data[0]
+    unique_id = f'user_{user["id"]}'
+
+    participant_result = supabase.table('participants').select('id').eq('unique_id', unique_id).execute()
+    if participant_result.data:
+        participant_id = participant_result.data[0]['id']
+    else:
+        ins = supabase.table('participants').insert({
+            'unique_id':         unique_id,
+            'name':              user['username'],
+            'type':              'student',
+            'class_dept':        'Student',
+            'school':            'Main School',
+            'contact':           '',
+            'emergency_contact': '',
+        }).execute()
+        participant_id = ins.data[0]['id']
+
+    existing = (
+        supabase.table('participant_events')
+        .select('participant_id')
+        .eq('participant_id', participant_id)
+        .eq('event_id', id)
+        .execute()
+    )
+    if existing.data:
+        flash(f'{user["username"]} is already assigned to this event', 'warning')
+        return redirect(url_for('event_detail', id=id))
+
+    supabase.table('participant_events').insert({
+        'participant_id': participant_id,
+        'event_id':       id,
+    }).execute()
+
+    flash(f'{user["username"]} has been assigned as a participant!', 'success')
+    return redirect(url_for('event_detail', id=id))
+
+
+# ─────────────────────────────────────────────
+# Duties CRUD
+# ─────────────────────────────────────────────
 @app.route('/duties')
 @login_required
 def duties():
-    conn = get_db_connection()
-    
-    duties = conn.execute('''
-        SELECT d.*, e.name as event_name, e.event_date as event_date,
-               dp.name as person_name, dp.designation, dp.school
-        FROM duties d
-        JOIN events e ON d.event_id = e.id
-        JOIN duty_personnel dp ON d.duty_person_id = dp.id
-        ORDER BY e.event_date
-    ''').fetchall()
-    
-    events = conn.execute('SELECT id, name, event_date FROM events ORDER BY event_date').fetchall()
-    duty_personnel = conn.execute('SELECT id, name, designation FROM duty_personnel ORDER BY name').fetchall()
-    
-    conn.close()
-    
-    return render_template('duties.html', duties=duties, events=events, 
-                         duty_personnel=duty_personnel)
+    duties_rows = (
+        supabase.table('duties')
+        .select('*, events(name, event_date), duty_personnel(name, designation, school)')
+        .order('duty_date')
+        .execute()
+        .data
+    )
+    duties = []
+    for d in duties_rows:
+        flat = {**d}
+        if d.get('events'):
+            flat['event_name'] = d['events']['name']
+            flat['event_date'] = d['events']['event_date']
+        if d.get('duty_personnel'):
+            flat['person_name']  = d['duty_personnel']['name']
+            flat['designation']  = d['duty_personnel']['designation']
+            flat['school']       = d['duty_personnel']['school']
+        duties.append(flat)
+
+    events_list = supabase.table('events').select('id, name, event_date').order('event_date').execute().data
+    duty_personnel = supabase.table('duty_personnel').select('id, name, designation').order('name').execute().data
+
+    return render_template('duties.html', duties=duties, events=events_list,
+                           duty_personnel=duty_personnel)
+
+def _resolve_duty_person(user_id):
+    """Get or create a duty_personnel record from a user id."""
+    user = supabase.table('users').select('username, role').eq('id', user_id).execute().data[0]
+    existing = supabase.table('duty_personnel').select('id').eq('name', user['username']).execute()
+    if existing.data:
+        return existing.data[0]['id']
+    result = supabase.table('duty_personnel').insert({
+        'name':        user['username'],
+        'designation': user['role'].capitalize(),
+        'school':      'Main School',
+    }).execute()
+    return result.data[0]['id']
 
 @app.route('/duties/assign', methods=['GET', 'POST'])
 @role_required(['admin', 'super_admin'])
 def assign_duty():
     if request.method == 'POST':
-        event_id = request.form['event_id']
-        duty_type = request.form['duty_type']
-        duty_date = request.form['duty_date']
-        time_slot = request.form['time_slot']
-        location = request.form['location']
-        description = request.form['description']
-        notes = request.form['notes']
-        
-        time_parts = time_slot.split(' - ')
+        time_parts = request.form['time_slot'].split(' - ')
         start_time = time_parts[0].strip()
-        end_time = time_parts[1].strip() if len(time_parts) > 1 else start_time
-        
-        user_id = request.form['user_id']
-        
-        conn = get_db_connection()
-        
-        # Check if user already exists in duty_personnel by mapping user_id
-        # We'll use a unique identifier or just link to the users table
-        # For simplicity, let's update duty_personnel to have a user_id link or just use the name
-        user = conn.execute('SELECT username, role FROM users WHERE id = ?', (user_id,)).fetchone()
-        
-        person = conn.execute('SELECT id FROM duty_personnel WHERE name = ?', 
-                             (user['username'],)).fetchone()
-        
-        if person:
-            duty_person_id = person['id']
-        else:
-            cursor = conn.execute('INSERT INTO duty_personnel (name, designation, school) VALUES (?, ?, ?)',
-                                (user['username'], user['role'].capitalize(), 'Main School'))
-            duty_person_id = cursor.lastrowid
-        
-        conn.execute('''
-            INSERT INTO duties (event_id, duty_person_id, duty_type, 
-                              duty_date, start_time, end_time, location, description, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (event_id, duty_person_id, duty_type, 
-              duty_date, start_time, end_time, location, description, notes))
-        conn.commit()
-        conn.close()
-        
+        end_time   = time_parts[1].strip() if len(time_parts) > 1 else start_time
+
+        duty_person_id = _resolve_duty_person(request.form['user_id'])
+
+        supabase.table('duties').insert({
+            'event_id':       int(request.form['event_id']),
+            'duty_person_id': duty_person_id,
+            'duty_type':      request.form['duty_type'],
+            'duty_date':      request.form['duty_date'],
+            'start_time':     start_time,
+            'end_time':       end_time,
+            'location':       request.form['location'],
+            'description':    request.form['description'],
+            'notes':          request.form['notes'],
+        }).execute()
+
         flash('Duty assigned successfully!', 'success')
         return redirect(url_for('duties'))
-    
-    conn = get_db_connection()
-    events = conn.execute('SELECT id, name, event_date, venue, start_time, end_time FROM events ORDER BY event_date').fetchall()
-    admins = conn.execute('SELECT id, username, role FROM users WHERE role IN ("admin", "super_admin")').fetchall()
-    conn.close()
-    
-    return render_template('add_duty.html', events=events, admins=admins)
+
+    events_list = supabase.table('events').select('id, name, event_date, venue, start_time, end_time').order('event_date').execute().data
+    admins      = supabase.table('users').select('id, username, role').in_('role', ['admin', 'super_admin']).execute().data
+    return render_template('add_duty.html', events=events_list, admins=admins)
 
 @app.route('/duties/add', methods=['GET', 'POST'])
 @role_required(['admin', 'super_admin'])
@@ -845,590 +836,309 @@ def add_duty():
 @app.route('/duties/<int:id>/edit', methods=['GET', 'POST'])
 @role_required(['admin', 'super_admin'])
 def edit_duty(id):
-    conn = get_db_connection()
-    duty = conn.execute('SELECT * FROM duties WHERE id = ?', (id,)).fetchone()
-    
     if request.method == 'POST':
-        event_id = request.form['event_id']
-        user_id = request.form['user_id']
-        duty_type = request.form['duty_type']
-        duty_date = request.form['duty_date']
-        time_slot = request.form['time_slot']
-        location = request.form['location']
-        description = request.form['description']
-        notes = request.form['notes']
-        
-        time_parts = time_slot.split(' - ')
+        time_parts = request.form['time_slot'].split(' - ')
         start_time = time_parts[0].strip()
-        end_time = time_parts[1].strip() if len(time_parts) > 1 else start_time
-        
-        user = conn.execute('SELECT username, role FROM users WHERE id = ?', (user_id,)).fetchone()
-        
-        person = conn.execute('SELECT id FROM duty_personnel WHERE name = ?', 
-                             (user['username'],)).fetchone()
-        
-        if person:
-            duty_person_id = person['id']
-        else:
-            cursor = conn.execute('INSERT INTO duty_personnel (name, designation, school) VALUES (?, ?, ?)',
-                                (user['username'], user['role'].capitalize(), 'Main School'))
-            duty_person_id = cursor.lastrowid
-        
-        conn.execute('''
-            UPDATE duties SET event_id = ?, duty_person_id = ?, duty_type = ?,
-                           duty_date = ?, start_time = ?, end_time = ?, location = ?, 
-                           description = ?, notes = ? WHERE id = ?
-        ''', (event_id, duty_person_id, duty_type, duty_date, 
-              start_time, end_time, location, description, notes, id))
-        conn.commit()
-        conn.close()
-        
+        end_time   = time_parts[1].strip() if len(time_parts) > 1 else start_time
+        duty_person_id = _resolve_duty_person(request.form['user_id'])
+
+        supabase.table('duties').update({
+            'event_id':       int(request.form['event_id']),
+            'duty_person_id': duty_person_id,
+            'duty_type':      request.form['duty_type'],
+            'duty_date':      request.form['duty_date'],
+            'start_time':     start_time,
+            'end_time':       end_time,
+            'location':       request.form['location'],
+            'description':    request.form['description'],
+            'notes':          request.form['notes'],
+        }).eq('id', id).execute()
+
         flash('Duty updated successfully!', 'success')
         return redirect(url_for('duties'))
-    
-    events = conn.execute('SELECT id, name, event_date, venue FROM events ORDER BY event_date').fetchall()
-    admins = conn.execute('SELECT id, username, role FROM users WHERE role IN ("admin", "super_admin")').fetchall()
-    
-    # Get current user id from duty_personnel name
-    current_person = conn.execute('SELECT name FROM duty_personnel WHERE id = ?', (duty['duty_person_id'],)).fetchone()
-    current_user = conn.execute('SELECT id FROM users WHERE username = ?', (current_person['name'],)).fetchone()
-    current_user_id = current_user['id'] if current_user else None
-    
-    conn.close()
-    
-    return render_template('edit_duty.html', duty=duty, events=events, admins=admins, current_user_id=current_user_id)
+
+    duty        = supabase.table('duties').select('*').eq('id', id).execute().data[0]
+    events_list = supabase.table('events').select('id, name, event_date, venue').order('event_date').execute().data
+    admins      = supabase.table('users').select('id, username, role').in_('role', ['admin', 'super_admin']).execute().data
+
+    person      = supabase.table('duty_personnel').select('name').eq('id', duty['duty_person_id']).execute().data[0]
+    current_user = supabase.table('users').select('id').eq('username', person['name']).execute().data
+    current_user_id = current_user[0]['id'] if current_user else None
+
+    return render_template('edit_duty.html', duty=duty, events=events_list,
+                           admins=admins, current_user_id=current_user_id)
 
 @app.route('/duties/<int:id>/delete', methods=['POST'])
 @role_required(['admin', 'super_admin'])
 def delete_duty(id):
-    conn = get_db_connection()
-    conn.execute('DELETE FROM duties WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
-    
+    supabase.table('duties').delete().eq('id', id).execute()
     flash('Duty deleted successfully!', 'success')
     return redirect(url_for('duties'))
 
-@app.route('/api/events')
-@login_required
-def api_events():
-    conn = get_db_connection()
-    events = conn.execute('SELECT * FROM events ORDER BY event_date').fetchall()
-    conn.close()
-    
-    return jsonify([dict(event) for event in events])
 
-@app.route('/api/participants')
-@login_required
-def api_participants():
-    conn = get_db_connection()
-    participants = conn.execute('SELECT * FROM participants').fetchall()
-    conn.close()
-    
-    return jsonify([dict(participant) for participant in participants])
+# ─────────────────────────────────────────────
+# Announcements
+# ─────────────────────────────────────────────
+@app.route('/announcements/add', methods=['POST'])
+@role_required(['admin', 'super_admin'])
+def add_announcement():
+    supabase.table('announcements').insert({
+        'title':      request.form.get('title', 'Event Update'),
+        'content':    request.form['content'],
+        'event_id':   int(request.form['event_id']),
+        'created_by': session['user_id'],
+    }).execute()
+    flash('Message sent successfully!', 'success')
+    return redirect(url_for('event_detail', id=request.form['event_id']))
 
-@app.route('/api/duties')
-@login_required
-def api_duties():
-    conn = get_db_connection()
-    duties = conn.execute('''
-        SELECT d.*, e.name as event_name, dp.name as person_name
-        FROM duties d
-        JOIN events e ON d.event_id = e.id
-        JOIN duty_personnel dp ON d.duty_person_id = dp.id
-    ''').fetchall()
-    conn.close()
-    
-    return jsonify([dict(duty) for duty in duties])
+@app.route('/announcements/<int:id>/delete', methods=['POST'])
+@role_required(['admin', 'super_admin'])
+def delete_announcement(id):
+    supabase.table('announcements').delete().eq('id', id).execute()
+    flash('Announcement deleted successfully!', 'success')
+    return redirect(request.referrer or url_for('dashboard'))
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        
-        conn = get_db_connection()
-        user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
-        conn.close()
-        
-        if user and check_password_hash(user['password_hash'], password):
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            session['role'] = user['role']
-            flash('Login successful!', 'success')
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid username or password', 'error')
-    
-    return render_template('login.html')
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    flash('Logged out successfully', 'success')
-    return redirect(url_for('login'))
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        confirm_password = request.form['confirm_password']
-        
-        if password != confirm_password:
-            flash('Passwords do not match', 'error')
-            return render_template('register.html')
-        
-        conn = get_db_connection()
-        existing_user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
-        
-        if existing_user:
-            flash('Username already exists', 'error')
-            conn.close()
-            return render_template('register.html')
-        
-        password_hash = generate_password_hash(password)
-        # Check if this is the first user, if so, make them super_admin
-        count = conn.execute('SELECT COUNT(*) as count FROM users').fetchone()['count']
-        role = 'super_admin' if count == 0 else 'student'
-        
-        conn.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)', (username, password_hash, role))
-        conn.commit()
-        conn.close()
-        
-        flash('Registration successful! Please login.', 'success')
-        return redirect(url_for('login'))
-    
-    return render_template('register.html')
-
+# ─────────────────────────────────────────────
+# Reports
+# ─────────────────────────────────────────────
 @app.route('/reports')
 @login_required
 def reports():
-    conn = get_db_connection()
     is_student = session.get('role') == 'student'
-    
+
     if is_student:
-        my_participant = conn.execute('''
-            SELECT p.* FROM participants p
-            JOIN users u ON u.username = p.unique_id
-            WHERE u.id = ?
-        ''', (session['user_id'],)).fetchone()
-        
+        my_p_result = (
+            supabase.table('participants')
+            .select('*')
+            .eq('unique_id', f"user_{session['user_id']}")
+            .execute()
+            .data
+        )
+        my_participant = my_p_result[0] if my_p_result else None
+
         my_events = []
-        if my_participant:
-            event_rows = conn.execute('''
-                SELECT e.* FROM events e
-                JOIN participant_events pe ON e.id = pe.event_id
-                WHERE pe.participant_id = ?
-                ORDER BY e.event_date DESC
-            ''', (my_participant['id'],)).fetchall()
-            for row in event_rows:
-                my_events.append(dict(row))
-        
         my_duties = []
         if my_participant:
-            duty_rows = conn.execute('''
-                SELECT d.*, e.name as event_name FROM duties d
-                JOIN events e ON d.event_id = e.id
-                JOIN duty_personnel dp ON dp.name = ?
-                WHERE d.duty_person_id = dp.id
-                ORDER BY d.duty_date DESC
-            ''', (session['username'],)).fetchall()
-            for row in duty_rows:
-                my_duties.append(dict(row))
-        
-        conn.close()
-        
+            event_rows = (
+                supabase.table('participant_events')
+                .select('events(*)')
+                .eq('participant_id', my_participant['id'])
+                .execute()
+                .data
+            )
+            my_events = [r['events'] for r in event_rows if r.get('events')]
+
+            duty_rows = (
+                supabase.table('duties')
+                .select('*, events(name)')
+                .eq('duty_person_id',
+                    supabase.table('duty_personnel').select('id').eq('name', session['username']).execute().data[0]['id']
+                    if supabase.table('duty_personnel').select('id').eq('name', session['username']).execute().data
+                    else -1)
+                .order('duty_date', desc=True)
+                .execute()
+                .data
+            )
+            for d in duty_rows:
+                flat = {**d}
+                flat['event_name'] = d['events']['name'] if d.get('events') else ''
+                my_duties.append(flat)
+
         return render_template('reports.html',
-                             is_student=is_student,
-                             my_participant=dict(my_participant) if my_participant else None,
-                             my_events=my_events,
-                             my_duties=my_duties)
-    
-    total_events = conn.execute('SELECT COUNT(*) as count FROM events').fetchone()['count']
-    total_participants = conn.execute('SELECT COUNT(*) as count FROM participants').fetchone()['count']
-    total_duties = conn.execute('SELECT COUNT(*) as count FROM duties').fetchone()['count']
-    
-    event_types = conn.execute('''
-        SELECT type, COUNT(*) as count 
-        FROM events 
-        GROUP BY type 
-        ORDER BY count DESC
-    ''').fetchall()
-    
-    monthly_events = conn.execute('''
-        SELECT strftime('%Y-%m', event_date) as month, COUNT(*) as count
-        FROM events
-        WHERE event_date >= date('now', '-12 months')
-        GROUP BY strftime('%Y-%m', event_date)
-        ORDER BY month
-    ''').fetchall()
-    
-    top_schools = conn.execute('''
-        SELECT school, COUNT(*) as count 
-        FROM participants 
-        GROUP BY school 
-        ORDER BY count DESC 
-        LIMIT 10
-    ''').fetchall()
-    
-    duty_stats = conn.execute('''
-        SELECT duty_type, COUNT(*) as count 
-        FROM duties 
-        GROUP BY duty_type
-    ''').fetchall()
-    
-    conn.close()
-    
+                               is_student=is_student,
+                               my_participant=my_participant,
+                               my_events=my_events,
+                               my_duties=my_duties)
+
+    # Admin view — aggregate stats
+    total_events       = supabase.table('events').select('id', count='exact').execute().count
+    total_participants = supabase.table('participants').select('id', count='exact').execute().count
+    total_duties       = supabase.table('duties').select('id', count='exact').execute().count
+
+    # Event types breakdown
+    all_events  = supabase.table('events').select('type').execute().data
+    type_counts = {}
+    for e in all_events:
+        type_counts[e['type']] = type_counts.get(e['type'], 0) + 1
+    event_types = [{'type': k, 'count': v} for k, v in sorted(type_counts.items(), key=lambda x: -x[1])]
+
+    # Monthly events (last 12 months)
+    from datetime import date, timedelta
+    cutoff = (date.today() - timedelta(days=365)).isoformat()
+    recent_events = (
+        supabase.table('events')
+        .select('event_date')
+        .gte('event_date', cutoff)
+        .execute()
+        .data
+    )
+    month_counts = {}
+    for e in recent_events:
+        ym = e['event_date'][:7]
+        month_counts[ym] = month_counts.get(ym, 0) + 1
+    monthly_events = [{'month': k, 'count': v} for k, v in sorted(month_counts.items())]
+
+    # Top schools by participants
+    all_participants = supabase.table('participants').select('school').execute().data
+    school_counts = {}
+    for p in all_participants:
+        school_counts[p['school']] = school_counts.get(p['school'], 0) + 1
+    top_schools = [{'school': k, 'count': v}
+                   for k, v in sorted(school_counts.items(), key=lambda x: -x[1])[:10]]
+
+    # Duty type stats
+    all_duties = supabase.table('duties').select('duty_type').execute().data
+    duty_counts = {}
+    for d in all_duties:
+        duty_counts[d['duty_type']] = duty_counts.get(d['duty_type'], 0) + 1
+    duty_stats = [{'duty_type': k, 'count': v} for k, v in duty_counts.items()]
+
     return render_template('reports.html',
-                         is_student=is_student,
-                         total_events=total_events,
-                         total_participants=total_participants,
-                         total_duties=total_duties,
-                         event_types=event_types,
-                         monthly_events=monthly_events,
-                         top_schools=top_schools,
-                         duty_stats=duty_stats)
+                           is_student=is_student,
+                           total_events=total_events,
+                           total_participants=total_participants,
+                           total_duties=total_duties,
+                           event_types=event_types,
+                           monthly_events=monthly_events,
+                           top_schools=top_schools,
+                           duty_stats=duty_stats)
+
+
+# ─────────────────────────────────────────────
+# Export routes
+# ─────────────────────────────────────────────
+def _csv_response(rows, headers, key_fn, filename):
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(headers)
+    for row in rows:
+        writer.writerow(key_fn(row))
+    response = make_response(output.getvalue())
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    response.headers['Content-Type'] = 'text/csv'
+    return response
 
 @app.route('/reports/export')
 @role_required(['admin', 'super_admin'])
 def export_reports():
-    import csv
-    from io import StringIO
-    from flask import make_response
-    
-    conn = get_db_connection()
-    
-    events = conn.execute('SELECT * FROM events ORDER BY event_date').fetchall()
-    participants = conn.execute('SELECT * FROM participants ORDER BY name').fetchall()
-    duties = conn.execute('''
-        SELECT d.*, e.name as event_name, dp.name as person_name
-        FROM duties d
-        JOIN events e ON d.event_id = e.id
-        JOIN duty_personnel dp ON d.duty_person_id = dp.id
-        ORDER BY d.duty_date
-    ''').fetchall()
-    
-    conn.close()
-    
+    events       = supabase.table('events').select('*').order('event_date').execute().data
+    participants = supabase.table('participants').select('*').order('name').execute().data
+    duties_raw   = (
+        supabase.table('duties')
+        .select('*, events(name), duty_personnel(name)')
+        .order('duty_date')
+        .execute()
+        .data
+    )
+
     output = StringIO()
     writer = csv.writer(output)
-    
+
     writer.writerow(['Events Report'])
     writer.writerow(['ID', 'Name', 'Type', 'Date', 'Start Time', 'End Time', 'Venue', 'Host School'])
-    for event in events:
-        writer.writerow([event['id'], event['name'], event['type'], event['event_date'], 
-                        event['start_time'], event['end_time'], event['venue'], event['host_school']])
-    
+    for e in events:
+        writer.writerow([e['id'], e['name'], e['type'], e['event_date'],
+                         e['start_time'], e['end_time'], e['venue'], e['host_school']])
+
     writer.writerow([])
     writer.writerow(['Participants Report'])
     writer.writerow(['ID', 'Unique ID', 'Name', 'Type', 'Class/Dept', 'School', 'Contact'])
-    for participant in participants:
-        writer.writerow([participant['id'], participant['unique_id'], participant['name'], 
-                        participant['type'], participant['class_dept'], participant['school'], 
-                        participant['contact']])
-    
+    for p in participants:
+        writer.writerow([p['id'], p['unique_id'], p['name'], p['type'],
+                         p['class_dept'], p['school'], p['contact']])
+
     writer.writerow([])
     writer.writerow(['Duties Report'])
     writer.writerow(['ID', 'Event Name', 'Person Name', 'Duty Type', 'Date', 'Time', 'Location'])
-    for duty in duties:
-        writer.writerow([duty['id'], duty['event_name'], duty['person_name'], 
-                        duty['duty_type'], duty['duty_date'], 
-                        f"{duty['start_time']} - {duty['end_time']}", duty['location']])
-    
-    csv_content = output.getvalue()
-    
-    response = make_response(csv_content)
+    for d in duties_raw:
+        writer.writerow([d['id'],
+                         d['events']['name'] if d.get('events') else '',
+                         d['duty_personnel']['name'] if d.get('duty_personnel') else '',
+                         d['duty_type'], d['duty_date'],
+                         f"{d['start_time']} - {d['end_time']}", d['location']])
+
+    response = make_response(output.getvalue())
     response.headers['Content-Disposition'] = 'attachment; filename=event_reports.csv'
     response.headers['Content-Type'] = 'text/csv'
-    
     return response
 
 @app.route('/export/events')
 @role_required(['admin', 'super_admin'])
 def export_events():
-    import csv
-    from io import StringIO
-    from flask import make_response
-    
-    conn = get_db_connection()
-    events = conn.execute('SELECT * FROM events ORDER BY event_date').fetchall()
-    conn.close()
-    
-    output = StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['ID', 'Name', 'Type', 'Date', 'Start Time', 'End Time', 'Venue', 'Host School', 'Description'])
-    for event in events:
-        writer.writerow([event['id'], event['name'], event['type'], event['event_date'], 
-                        event['start_time'], event['end_time'], event['venue'], 
-                        event['host_school'], event['description']])
-    
-    response = make_response(output.getvalue())
-    response.headers['Content-Disposition'] = 'attachment; filename=events.csv'
-    response.headers['Content-Type'] = 'text/csv'
-    return response
+    events = supabase.table('events').select('*').order('event_date').execute().data
+    return _csv_response(
+        events,
+        ['ID', 'Name', 'Type', 'Date', 'Start Time', 'End Time', 'Venue', 'Host School', 'Description'],
+        lambda e: [e['id'], e['name'], e['type'], e['event_date'],
+                   e['start_time'], e['end_time'], e['venue'], e['host_school'], e['description']],
+        'events.csv'
+    )
 
 @app.route('/export/participants')
 @role_required(['admin', 'super_admin'])
 def export_participants():
-    import csv
-    from io import StringIO
-    from flask import make_response
-    
-    conn = get_db_connection()
-    participants = conn.execute('SELECT * FROM participants ORDER BY name').fetchall()
-    conn.close()
-    
-    output = StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['ID', 'Unique ID', 'Name', 'Type', 'Class/Dept', 'School', 'Contact'])
-    for participant in participants:
-        writer.writerow([participant['id'], participant['unique_id'], participant['name'], 
-                        participant['type'], participant['class_dept'], participant['school'], 
-                        participant['contact']])
-    
-    response = make_response(output.getvalue())
-    response.headers['Content-Disposition'] = 'attachment; filename=participants.csv'
-    response.headers['Content-Type'] = 'text/csv'
-    return response
+    participants = supabase.table('participants').select('*').order('name').execute().data
+    return _csv_response(
+        participants,
+        ['ID', 'Unique ID', 'Name', 'Type', 'Class/Dept', 'School', 'Contact'],
+        lambda p: [p['id'], p['unique_id'], p['name'], p['type'],
+                   p['class_dept'], p['school'], p['contact']],
+        'participants.csv'
+    )
 
 @app.route('/export/duties')
 @role_required(['admin', 'super_admin'])
 def export_duties():
-    import csv
-    from io import StringIO
-    from flask import make_response
-    
-    conn = get_db_connection()
-    duties = conn.execute('''
-        SELECT d.*, e.name as event_name, dp.name as person_name
-        FROM duties d
-        JOIN events e ON d.event_id = e.id
-        JOIN duty_personnel dp ON d.duty_person_id = dp.id
-        ORDER BY d.duty_date
-    ''').fetchall()
-    conn.close()
-    
-    output = StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['ID', 'Event Name', 'Person Name', 'Duty Type', 'Date', 'Start Time', 'End Time', 'Location'])
-    for duty in duties:
-        writer.writerow([duty['id'], duty['event_name'], duty['person_name'], 
-                        duty['duty_type'], duty['duty_date'], 
-                        duty['start_time'], duty['end_time'], duty['location']])
-    
-    response = make_response(output.getvalue())
-    response.headers['Content-Disposition'] = 'attachment; filename=duties.csv'
-    response.headers['Content-Type'] = 'text/csv'
-    return response
+    duties = (
+        supabase.table('duties')
+        .select('*, events(name), duty_personnel(name)')
+        .order('duty_date')
+        .execute()
+        .data
+    )
+    return _csv_response(
+        duties,
+        ['ID', 'Event Name', 'Person Name', 'Duty Type', 'Date', 'Start Time', 'End Time', 'Location'],
+        lambda d: [d['id'],
+                   d['events']['name'] if d.get('events') else '',
+                   d['duty_personnel']['name'] if d.get('duty_personnel') else '',
+                   d['duty_type'], d['duty_date'], d['start_time'], d['end_time'], d['location']],
+        'duties.csv'
+    )
 
 @app.route('/export/teachers')
 @role_required(['admin', 'super_admin'])
 def export_teachers():
-    import csv
-    from io import StringIO
-    from flask import make_response
-    
-    conn = get_db_connection()
-    teachers = conn.execute('''
-        SELECT * FROM duty_personnel 
-        WHERE type = 'Teacher' OR type = 'Staff'
-        ORDER BY name
-    ''').fetchall()
-    conn.close()
-    
-    output = StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['ID', 'Name', 'Type', 'Contact', 'Department'])
-    for teacher in teachers:
-        writer.writerow([teacher['id'], teacher['name'], teacher['type'], 
-                        teacher['contact'], teacher['department']])
-    
-    response = make_response(output.getvalue())
-    response.headers['Content-Disposition'] = 'attachment; filename=teachers.csv'
-    response.headers['Content-Type'] = 'text/csv'
-    return response
-
-@app.route('/delete_all_data', methods=['POST'])
-@role_required(['super_admin'])
-def delete_all_data():
-    try:
-        conn = get_db_connection()
-        conn.execute('DELETE FROM duties')
-        conn.execute('DELETE FROM duty_personnel')
-        conn.execute('DELETE FROM participants')
-        conn.execute('DELETE FROM events')
-        conn.execute('DELETE FROM users WHERE role != "super_admin"')
-        conn.commit()
-        conn.close()
-        
-        return jsonify({'success': True, 'message': 'All data has been deleted successfully!'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-@app.route('/api/scan-event', methods=['POST'])
-@login_required
-def scan_event():
-    """
-    API endpoint to scan event details from uploaded image
-    Uses EventExtractor from ai-event.py
-    """
-    try:
-        # Import EventExtractor here to avoid circular imports
-        import sys
-        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-        from ai_event import EventExtractor
-        
-        if 'image' not in request.files:
-            return jsonify({'error': 'No image file provided'}), 400
-        
-        file = request.files['image']
-        if file.filename == '':
-            return jsonify({'error': 'No file selected'}), 400
-        
-        # Save uploaded file temporarily
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp_file:
-            file.save(tmp_file.name)
-            temp_path = tmp_file.name
-        
-        try:
-            # Initialize EventExtractor
-            extractor = EventExtractor()
-            
-            # Extract event details
-            result = extractor.extract_event_info(temp_path)
-            
-            # Clean up temporary file
-            os.unlink(temp_path)
-            
-            if result.get('error'):
-                return jsonify({'error': result['error']}), 500
-            
-            # Format the response for the frontend
-            event_data = {
-                'name': result.get('event_name', 'Untitled Event'),
-                'venue': result.get('location', ''),
-                'event_date': result.get('date', ''),
-                'start_time': result.get('time', ''),
-                'description': result.get('additional_info', ''),
-                'confidence': result.get('confidence', 'medium')
-            }
-            
-            return jsonify({'success': True, 'event': event_data})
-            
-        except Exception as e:
-            # Clean up temporary file
-            if os.path.exists(temp_path):
-                os.unlink(temp_path)
-            return jsonify({'error': f'Processing error: {str(e)}'}), 500
-            
-    except Exception as e:
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
-
-@app.route('/api/search_students')
-@role_required(['admin', 'super_admin'])
-def search_students():
-    query = request.args.get('q', '').strip()
-    event_id = request.args.get('event_id', type=int)
-    
-    conn = get_db_connection()
-    
-    if query:
-        students = conn.execute(
-            "SELECT id, username FROM users WHERE role = 'student' AND username LIKE ? ORDER BY username LIMIT 20",
-            (f'%{query}%',)
-        ).fetchall()
-    else:
-        students = conn.execute(
-            "SELECT id, username FROM users WHERE role = 'student' ORDER BY username LIMIT 20"
-        ).fetchall()
-    
-    results = []
-    for s in students:
-        already_assigned = False
-        if event_id:
-            # Check if this user is already assigned as a participant to this event
-            participant = conn.execute(
-                "SELECT p.id FROM participants p JOIN participant_events pe ON p.id = pe.participant_id WHERE p.unique_id = ? AND pe.event_id = ?",
-                (f'user_{s["id"]}', event_id)
-            ).fetchone()
-            already_assigned = participant is not None
-        
-        results.append({
-            'id': s['id'],
-            'username': s['username'],
-            'already_assigned': already_assigned
-        })
-    
-    conn.close()
-    return jsonify(results)
+    teachers = (
+        supabase.table('duty_personnel')
+        .select('*')
+        .in_('designation', ['Teacher', 'Staff'])
+        .order('name')
+        .execute()
+        .data
+    )
+    return _csv_response(
+        teachers,
+        ['ID', 'Name', 'Designation', 'Contact', 'School'],
+        lambda t: [t['id'], t['name'], t['designation'], t['contact'], t['school']],
+        'teachers.csv'
+    )
 
 
-@app.route('/events/<int:id>/assign_participant', methods=['POST'])
-@role_required(['admin', 'super_admin'])
-def assign_participant(id):
-    user_id = request.form.get('user_id', type=int)
-    
-    if not user_id:
-        flash('No student selected', 'error')
-        return redirect(url_for('event_detail', id=id))
-    
-    conn = get_db_connection()
-    
-    # Check the event exists
-    event = conn.execute('SELECT * FROM events WHERE id = ?', (id,)).fetchone()
-    if not event:
-        conn.close()
-        flash('Event not found', 'error')
-        return redirect(url_for('events'))
-    
-    # Get the student user
-    user = conn.execute("SELECT * FROM users WHERE id = ? AND role = 'student'", (user_id,)).fetchone()
-    if not user:
-        conn.close()
-        flash('Student user not found', 'error')
-        return redirect(url_for('event_detail', id=id))
-    
-    unique_id = f'user_{user["id"]}'
-    
-    # Check if participant record already exists for this user
-    participant = conn.execute('SELECT * FROM participants WHERE unique_id = ?', (unique_id,)).fetchone()
-    
-    if participant:
-        participant_id = participant['id']
-    else:
-        # Create a participant record from the user account
-        cursor = conn.execute(
-            'INSERT INTO participants (unique_id, name, type, class_dept, school, contact, emergency_contact) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            (unique_id, user['username'], 'student', 'Student', 'Main School', '', '')
-        )
-        participant_id = cursor.lastrowid
-    
-    # Check if already assigned to this event
-    existing = conn.execute(
-        'SELECT * FROM participant_events WHERE participant_id = ? AND event_id = ?',
-        (participant_id, id)
-    ).fetchone()
-    
-    if existing:
-        conn.close()
-        flash(f'{user["username"]} is already assigned to this event', 'warning')
-        return redirect(url_for('event_detail', id=id))
-    
-    conn.execute('INSERT INTO participant_events (participant_id, event_id) VALUES (?, ?)',
-                (participant_id, id))
-    conn.commit()
-    conn.close()
-    
-    flash(f'{user["username"]} has been assigned as a participant!', 'success')
-    return redirect(url_for('event_detail', id=id))
-
-
+# ─────────────────────────────────────────────
+# User management
+# ─────────────────────────────────────────────
 @app.route('/manage_users')
 @role_required(['super_admin'])
 def manage_users():
-    conn = get_db_connection()
-    users = conn.execute('SELECT id, username, role FROM users WHERE role != "super_admin"').fetchall()
-    conn.close()
+    users = (
+        supabase.table('users')
+        .select('id, username, role')
+        .neq('role', 'super_admin')
+        .execute()
+        .data
+    )
     return render_template('manage_users.html', users=users)
 
 @app.route('/promote_user/<int:user_id>/<string:role>')
@@ -1437,16 +1147,134 @@ def promote_user(user_id, role):
     if role not in ['admin', 'student']:
         flash('Invalid role', 'error')
         return redirect(url_for('manage_users'))
-    
-    conn = get_db_connection()
-    conn.execute('UPDATE users SET role = ? WHERE id = ?', (role, user_id))
-    conn.commit()
-    conn.close()
-    
+    supabase.table('users').update({'role': role}).eq('id', user_id).execute()
     flash(f'User role updated to {role}', 'success')
     return redirect(url_for('manage_users'))
 
-if __name__ == "__main__":
-    init_db()
-    port = int(os.environ.get("PORT", 8000))  
-    app.run(host="0.0.0.0", port=port, debug=True)
+@app.route('/delete_all_data', methods=['POST'])
+@role_required(['super_admin'])
+def delete_all_data():
+    try:
+        supabase.table('duties').delete().neq('id', 0).execute()
+        supabase.table('duty_personnel').delete().neq('id', 0).execute()
+        supabase.table('participant_events').delete().neq('participant_id', 0).execute()
+        supabase.table('participants').delete().neq('id', 0).execute()
+        supabase.table('announcements').delete().neq('id', 0).execute()
+        supabase.table('events').delete().neq('id', 0).execute()
+        supabase.table('users').delete().neq('role', 'super_admin').execute()
+        return jsonify({'success': True, 'message': 'All data has been deleted successfully!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ─────────────────────────────────────────────
+# API endpoints
+# ─────────────────────────────────────────────
+@app.route('/api/events')
+@login_required
+def api_events():
+    events = supabase.table('events').select('*').order('event_date').execute().data
+    return jsonify(events)
+
+@app.route('/api/participants')
+@login_required
+def api_participants():
+    participants = supabase.table('participants').select('*').execute().data
+    return jsonify(participants)
+
+@app.route('/api/duties')
+@login_required
+def api_duties():
+    duties = (
+        supabase.table('duties')
+        .select('*, events(name), duty_personnel(name)')
+        .execute()
+        .data
+    )
+    flat = []
+    for d in duties:
+        row = {**d}
+        row['event_name']  = d['events']['name'] if d.get('events') else ''
+        row['person_name'] = d['duty_personnel']['name'] if d.get('duty_personnel') else ''
+        flat.append(row)
+    return jsonify(flat)
+
+@app.route('/api/search_students')
+@role_required(['admin', 'super_admin'])
+def search_students():
+    query    = request.args.get('q', '').strip()
+    event_id = request.args.get('event_id', type=int)
+
+    q = supabase.table('users').select('id, username').eq('role', 'student')
+    if query:
+        q = q.ilike('username', f'%{query}%')
+    students = q.order('username').limit(20).execute().data
+
+    results = []
+    for s in students:
+        already_assigned = False
+        if event_id:
+            participant = supabase.table('participants').select('id').eq('unique_id', f'user_{s["id"]}').execute().data
+            if participant:
+                pe = (
+                    supabase.table('participant_events')
+                    .select('participant_id')
+                    .eq('participant_id', participant[0]['id'])
+                    .eq('event_id', event_id)
+                    .execute()
+                    .data
+                )
+                already_assigned = bool(pe)
+        results.append({'id': s['id'], 'username': s['username'], 'already_assigned': already_assigned})
+
+    return jsonify(results)
+
+@app.route('/api/scan-event', methods=['POST'])
+@login_required
+def scan_event():
+    try:
+        import sys
+        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+        from ai_event import EventExtractor
+
+        if 'image' not in request.files:
+            return jsonify({'error': 'No image file provided'}), 400
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp_file:
+            file.save(tmp_file.name)
+            temp_path = tmp_file.name
+
+        try:
+            extractor = EventExtractor()
+            result    = extractor.extract_event_info(temp_path)
+            os.unlink(temp_path)
+
+            if result.get('error'):
+                return jsonify({'error': result['error']}), 500
+
+            return jsonify({'success': True, 'event': {
+                'name':        result.get('event_name', 'Untitled Event'),
+                'venue':       result.get('location', ''),
+                'event_date':  result.get('date', ''),
+                'start_time':  result.get('time', ''),
+                'description': result.get('additional_info', ''),
+                'confidence':  result.get('confidence', 'medium'),
+            }})
+        except Exception as e:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            return jsonify({'error': f'Processing error: {str(e)}'}), 500
+
+    except Exception as e:
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+
+# ─────────────────────────────────────────────
+# Run
+# ─────────────────────────────────────────────
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 8000))
+    app.run(host='0.0.0.0', port=port, debug=True)

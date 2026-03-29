@@ -1349,7 +1349,7 @@ def search_students():
             # Check if this user is already assigned as a participant to this event
             participant = conn.execute(
                 "SELECT p.id FROM participants p JOIN participant_events pe ON p.id = pe.participant_id WHERE p.unique_id = ? AND pe.event_id = ?",
-                (f'user_{s["id"]}', event_id)
+                (s["username"], event_id)
             ).fetchone()
             already_assigned = participant is not None
         
@@ -1388,7 +1388,7 @@ def assign_participant(id):
         flash('Student user not found', 'error')
         return redirect(url_for('event_detail', id=id))
     
-    unique_id = f'user_{user["id"]}'
+    unique_id = user['username']
     
     # Check if participant record already exists for this user
     participant = conn.execute('SELECT * FROM participants WHERE unique_id = ?', (unique_id,)).fetchone()
@@ -1420,6 +1420,131 @@ def assign_participant(id):
     conn.close()
     
     flash(f'{user["username"]} has been assigned as a participant!', 'success')
+    return redirect(url_for('event_detail', id=id))
+
+@app.route('/events/<int:id>/bulk-assign')
+@role_required(['admin', 'super_admin'])
+def bulk_assign_participants(id):
+    conn = get_db_connection()
+    event = conn.execute('SELECT * FROM events WHERE id = ?', (id,)).fetchone()
+    if not event:
+        conn.close()
+        flash('Event not found', 'error')
+        return redirect(url_for('events'))
+    conn.close()
+    return render_template('bulk_assign_participants.html', event=event)
+
+@app.route('/events/<int:id>/bulk-assign/template')
+@role_required(['admin', 'super_admin'])
+def download_bulk_assign_template(id):
+    conn = get_db_connection()
+    event = conn.execute('SELECT * FROM events WHERE id = ?', (id,)).fetchone()
+    if not event:
+        conn.close()
+        flash('Event not found', 'error')
+        return redirect(url_for('events'))
+    
+    users = conn.execute("SELECT id, username FROM users WHERE role = 'student' ORDER BY username LIMIT 20").fetchall()
+    conn.close()
+    
+    df = pd.DataFrame({
+        'student_username': [u['username'] for u in users],
+        'event_id': [event['id']] * min(20, len(users))
+    })
+    output = io.StringIO()
+    df.to_csv(output, index=False)
+    output.seek(0)
+    response = make_response(output.getvalue())
+    response.headers['Content-Disposition'] = f'attachment; filename=bulk_assign_event_{id}_template.csv'
+    response.headers['Content-type'] = 'text/csv'
+    return response
+
+@app.route('/events/<int:id>/bulk-assign/process', methods=['POST'])
+@role_required(['admin', 'super_admin'])
+def process_bulk_assign(id):
+    conn = get_db_connection()
+    event = conn.execute('SELECT * FROM events WHERE id = ?', (id,)).fetchone()
+    if not event:
+        conn.close()
+        flash('Event not found', 'error')
+        return redirect(url_for('events'))
+    
+    if 'file' not in request.files:
+        flash('No file uploaded', 'error')
+        return redirect(url_for('bulk_assign_participants', id=id))
+    
+    file = request.files['file']
+    if file.filename == '':
+        flash('No file selected', 'error')
+        return redirect(url_for('bulk_assign_participants', id=id))
+    
+    if file and (file.filename.endswith('.csv') or file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
+        added_count = 0
+        skipped_usernames = []
+        
+        try:
+            if file.filename.endswith('.csv'):
+                df = pd.read_csv(file)
+            else:
+                df = pd.read_excel(file)
+            
+            df.columns = df.columns.str.strip().str.lower()
+            
+            for index, row in df.iterrows():
+                try:
+                    student_username = str(row.get('student_username', '')).strip()
+                    
+                    if not student_username:
+                        continue
+                    
+                    user = conn.execute("SELECT * FROM users WHERE username = ? AND role = 'student'", (student_username,)).fetchone()
+                    
+                    if not user:
+                        skipped_usernames.append(f"{student_username} (User not found)")
+                        continue
+                    
+                    unique_id = user['username']
+                    name = user['username']
+                    
+                    participant = conn.execute('SELECT * FROM participants WHERE unique_id = ?', (unique_id,)).fetchone()
+                    
+                    if not participant:
+                        cursor = conn.execute(
+                            'INSERT INTO participants (unique_id, name, type, class_dept, school, contact, emergency_contact) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                            (unique_id, name, 'student', 'Student', 'Main School', '', '')
+                        )
+                        participant_id = cursor.lastrowid
+                    else:
+                        participant_id = participant['id']
+                    
+                    existing = conn.execute(
+                        'SELECT * FROM participant_events WHERE participant_id = ? AND event_id = ?',
+                        (participant_id, id)
+                    ).fetchone()
+                    
+                    if existing:
+                        skipped_usernames.append(f"{student_username} (Already assigned)")
+                    else:
+                        conn.execute('INSERT INTO participant_events (participant_id, event_id) VALUES (?, ?)',
+                                    (participant_id, id))
+                        added_count += 1
+                        
+                except Exception as e:
+                    skipped_usernames.append(f"{student_username} (Error: {str(e)})")
+            
+            conn.commit()
+            conn.close()
+            
+            message = f'Successfully assigned {added_count} participants to this event.'
+            if skipped_usernames:
+                message += f' Skipped {len(skipped_usernames)} rows: {", ".join(skipped_usernames)}.'
+            flash(message, 'success' if added_count > 0 else 'warning')
+            
+        except Exception as e:
+            flash(f'Error processing file: {str(e)}', 'error')
+    else:
+        flash('Invalid file format. Please upload a CSV or Excel file.', 'error')
+    
     return redirect(url_for('event_detail', id=id))
 
 

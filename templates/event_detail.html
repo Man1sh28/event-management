@@ -106,10 +106,13 @@
                         <!-- Admin: Add student participant -->
                         {% if session.role in ['admin', 'super_admin'] %}
                         <div class="student-search-section">
-                            <div class="student-search-header">
+                            <div class="student-search-header" style="display: flex; justify-content: space-between; align-items: center;">
                                 <h4 class="student-search-title">
                                     <i class="fas fa-user-plus"></i> Add Student Participant
                                 </h4>
+                                <a href="{{ url_for('bulk_assign_participants', id=event.id) }}" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #34c759; color: white; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500;">
+                                    <i class="fas fa-upload"></i> Bulk Assign
+                                </a>
                             </div>
                             <div class="student-search-wrapper">
                                 <div class="student-search-input-wrap">
